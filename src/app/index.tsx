@@ -3,15 +3,20 @@ import { Text } from "@/components/Text/index";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { theme } from "@/theme";
-import { Botao } from "@/components/Buttom/button";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
-import { fontSize } from "@/theme/fontSize";
 import { Ionicons } from "@expo/vector-icons";
 import Feather from "@expo/vector-icons/Feather";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { InfoCard } from "@/components/InfoCard";
+import { Botao } from "@/components/Buttom/button";
 
 export default function Index() {
   const router = useRouter();
+
+  function handleNavigateLogin() {
+    router.push("/login");
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -38,18 +43,53 @@ export default function Index() {
         </Text>
       </View>
       <View style={styles.box}>
-        <View style={styles.box1}>
-          <View>
-            <Feather name="shopping-bag" size={24} color="black" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.boxT}>Peças em estoque</Text>
-            <Text style={styles.boxTxt}>
-              Peças impressas em 3D prontas para retirada imediata. Alta
-              qualidade e acabamento profissional.
-            </Text>
-          </View>
-        </View>
+        <InfoCard
+          titulo="Peças em estoque"
+          texto="Peças impressas em 3D prontas para retirada imediata. Alta
+              qualidade e acabamento profissional."
+          borderColor={theme.colors.roxoClaro}
+          icon={
+            <Feather name="shopping-bag" size={24} color={theme.colors.roxo} />
+          }
+          iconBg={theme.colors.roxoClaro}
+        />
+
+        <InfoCard
+          titulo="Peças sob encomenda"
+          texto="Solicite orçamento para peças personalizadas. Imprimimos seu
+              projeto com qualidade premium!"
+          borderColor={theme.colors.rosaChoqueClaro}
+          icon={
+            <MaterialIcons
+              name="auto-awesome"
+              size={24}
+              color={theme.colors.rosaChoque}
+            />
+          }
+          iconBg={theme.colors.rosaChoqueClaro}
+        />
+
+        <InfoCard
+          titulo="Retirada na Loja"
+          texto="Peças prontas para retirada imediata. Compre online e retire na hora!"
+          borderColor={theme.colors.azulClaro}
+          icon={
+            <Ionicons name="cube-outline" size={24} color={theme.colors.azul} />
+          }
+          iconBg={theme.colors.azulClaro}
+        />
+      </View>
+
+      <View style={styles.botoes}>
+        <LinearGradient style={styles.backBotao}
+            colors={theme.colors.roxoRosa}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+          <Botao titulo="Entrar na Loja" onPress={handleNavigateLogin} color={theme.colors.white} icon={<Feather name="arrow-right" size={24} color="white" />}/>
+        </LinearGradient>
+
+        <Botao titulo="Explorar sem Login" onPress={handleNavigateLogin} color={"black"}  border={2} borderColor={theme.colors.cinzaClaro}/>
       </View>
     </SafeAreaView>
   );
@@ -86,24 +126,13 @@ const styles = StyleSheet.create({
   },
   box: {
     paddingHorizontal: 20,
-    marginTop: 15
+    marginTop: 15,
   },
-  box1: {
-    backgroundColor: theme.colors.white,
-    flexDirection: "row",
-    padding: 20,
-    borderRadius: 20,
-    elevation: 5,
-    borderColor: theme.colors.roxoClaro,
-    borderWidth: 2,
-    gap: 20,
-    width: "100%",
+  botoes: {
+    marginTop: 20,
+    gap: 20
   },
-  boxT: {
-    fontSize: theme.fontSize.lg,
-    fontFamily: theme.fonts.bold,
-  },
-  boxTxt: {
-    textAlign: "justify",
-  },
+  backBotao: {
+    borderRadius: 20
+  }
 });

@@ -1,35 +1,22 @@
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { theme } from "@/theme";
+import { TouchableOpacity, TouchableOpacityProps} from 'react-native';
+import { Text } from '@/components/Text/index';
+import {styles} from "./styles"
 
 
-interface Props {
+type Props = TouchableOpacityProps & {
   titulo: string
-  onPress: () => void
+  icon?: any
+  color: string
+  border?: number
+  borderColor?: string
 }
 
-export function Botao({ titulo, onPress }: Props) {
-  return (
-    <TouchableOpacity style={styles.botao} onPress={onPress}>
-      <Text style={styles.texto}>{titulo}</Text>
+export function Botao({titulo, icon, color, border, borderColor, ...rest}: Props)  {
+
+  return(
+    <TouchableOpacity {...rest} style={[styles.botao, {borderWidth: border, borderColor: borderColor}]}>
+      <Text style={[styles.txt, {color: color}]}>{titulo}</Text>
+      {icon}
     </TouchableOpacity>
   )
 }
-
-const styles = StyleSheet.create({
-  botao: {
-    paddingVertical: 15,
-    marginVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 30, 
-    borderWidth: 2,
-    borderColor: theme.colors.white,
-     width: 150,
-
-    
-  },
-  texto: {
-    color: '#fff',
-    fontWeight: 'bold',
-  }
-})
