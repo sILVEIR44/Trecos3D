@@ -7,7 +7,7 @@ import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { Botao } from "@/components/Buttom/button";
 
-export default function Login() {
+export default function Recuperar() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -18,10 +18,6 @@ export default function Login() {
     router.push("/register");
   }
 
-  function handleNavigateRecuperar() {
-    router.push("/recuperar");
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.box}>
@@ -29,47 +25,27 @@ export default function Login() {
           <View style={styles.icon}>
             <Ionicons name="cube-outline" size={30} color="white" />
           </View>
-          <Text style={styles.titulo}>Bem-Vindo!</Text>
-          <Text>Entre na sua conta</Text>
+          <Text style={styles.titulo}>Recuperar Senha</Text>
         </View>
         <View style={styles.mid}>
-          <Text style={styles.txt}>Email</Text>
+          <Text style={styles.txt}>Digite seu email para enviar o link de recuperação</Text>
           <View style={styles.input}>
             <TextInput
-              placeholder="Digite seu Email"
+              placeholder="Email"
               onChangeText={setEmail}
               value={email}
             ></TextInput>
           </View>
-          <Text style={styles.txtSenha}>Senha</Text>
-          <View style={styles.input}>
-            <TextInput
-              placeholder="Digite sua senha"
-              secureTextEntry={true}
-              onChangeText={setSenha}
-              value={senha}
-            ></TextInput>
-          </View>
-          <View style={styles.esqueciSenhaBox}>
-            <TouchableOpacity onPress={handleNavigateRecuperar}>
-              <Text style={styles.esqueciSenha}>esqueci minha senha</Text>
-            </TouchableOpacity>
-          </View>
         </View>
         <View style={styles.botao}>
           <Botao
-            titulo="Entrar"
+            titulo="Enviar"
             color="white"
             border={2}
             borderColor="black"
             backgroundColor={"black"}
           ></Botao>
-          <View style={styles.cadastreBox}>
-            <Text>Não tem um conta?</Text>
-            <TouchableOpacity onPress={handleNavigateRegister}>
-              <Text style={styles.cadastre}>Cadastre-se</Text>
-            </TouchableOpacity>
-          </View>
+          
         </View>
       </View>
     </SafeAreaView>
@@ -86,7 +62,7 @@ const styles = StyleSheet.create({
   box: {
     borderWidth: 2,
     width: "100%",
-    height: "70%",
+    height: "45%",
     alignItems: "center",
     gap: 20,
   },
@@ -122,38 +98,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   txt: {
-    fontFamily: theme.fonts.bold,
-    fontSize: theme.fontSize.md,
+    fontFamily: theme.fonts.regular,
+    fontSize: theme.fontSize.sm,
     paddingTop: 20,
-  },
-  txtSenha: {
-    fontFamily: theme.fonts.bold,
-    fontSize: theme.fontSize.md,
-    paddingTop: 40,
-  },
-  esqueciSenha: {
-    fontFamily: theme.fonts.bold,
-  },
-  esqueciSenhaBox: {
-    width: "100%",
-    alignItems: "flex-end",
-    paddingRight: 5,
-    paddingTop: 7,
   },
   botao: {
     width: "100%",
     paddingHorizontal: 10,
     paddingTop: 20,
   },
-  cadastre: {
-    fontFamily: theme.fonts.bold,
-  },
-  cadastreBox: {
-    flexDirection: "row",
-    gap: 10,
-    paddingTop: 10,
-    alignItems: "flex-end",
-    justifyContent: "flex-end",
-    paddingRight: 10,
-  },
+ 
 });

@@ -9,6 +9,7 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     flexDirection: 'row',
     gap: 10,
+    width: '100%'
   },
   txt: {
     fontSize: theme.fontSize.lg,

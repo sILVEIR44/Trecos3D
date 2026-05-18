@@ -9,12 +9,13 @@ type Props = TouchableOpacityProps & {
   color: string
   border?: number
   borderColor?: string
+  backgroundColor?: any
 }
 
-export function Botao({titulo, icon, color, border, borderColor, ...rest}: Props)  {
+export function Botao({titulo, icon, color, border, borderColor,backgroundColor, ...rest}: Props)  {
 
   return(
-    <TouchableOpacity {...rest} style={[styles.botao, {borderWidth: border, borderColor: borderColor}]}>
+    <TouchableOpacity {...rest} style={[styles.botao, {borderWidth: border, borderColor: borderColor, backgroundColor: backgroundColor}]}>
       <Text style={[styles.txt, {color: color}]}>{titulo}</Text>
       {icon}
     </TouchableOpacity>
