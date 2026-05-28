@@ -6,14 +6,33 @@ import { theme } from "@/theme";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { Botao } from "@/components/Buttom/button";
+import api from "../services/authService";
 
 export default function Login() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
-
   const [senha, setSenha] = useState("");
 
+  async function executarLogin() {
+    try{
+      const response = await api.post('/login', {
+        email: email,
+        password: senha
+      });
+
+      const token = response.data.token;
+      console.log("Token recebido: ", token);
+
+      alert("Vitória! Logado com sucesso.")
+
+      router.push("/home");
+    } catch (error) {
+      alert("Acesso Negado: E-mail ou senha inválidos. ");
+      console.log(error);
+    }
+  }
+  
   function handleNavigateRegister() {
     router.push("/register");
   }
@@ -65,7 +84,7 @@ export default function Login() {
             titulo="Entrar"
             color="white"
             border={2}
-            onPress={handleNavigateHome}
+            onPress={executarLogin}
             borderColor="black"
             backgroundColor={"black"}
           ></Botao>

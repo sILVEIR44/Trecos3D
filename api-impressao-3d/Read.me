@@ -1,0 +1,149 @@
+Documentação Técnica: API Impressão 3D
+Este documento contém o guia de instalação do servidor, a especificação das regras de negócio implementadas no Back-end (Node.js) e as instruções de consumo e testes para a equipe de Front-end (React Native).
+
+PARTE 1: Guia de Instalação e Configuração do Servidor
+Esta seção descreve os passos necessários para reconstruir ou rodar o ambiente de desenvolvimento do Back-end do zero.
+
+1. Inicialização do Projeto e Dependências
+Crie um diretório chamado api-impressao-3d.
+
+Inicie o gerenciador de pacotes do Node.js executando npm init -y no terminal.
+
+Instale as dependências de produção com o comando:
+
+Bash
+npm install express pg cors dotenv bcrypt jsonwebtoken
+4. Instale o utilitário de desenvolvimento Nodemon:
+   ```bash
+npm install --save-dev nodemon
+2. Estrutura de Arquivos e Scripts
+Modifique o arquivo package.json para incluir o script de inicialização automática em ambiente de desenvolvimento:
+
+JSON
+"scripts": {
+  "dev": "nodemon src/server.js"
+}
+O servidor deve ser iniciado utilizando o comando npm run dev.
+
+3. Configuração do Banco de Dados (Supabase)
+Na raiz do projeto, configure o arquivo .env com as variáveis de ambiente necessárias para a conexão com o banco PostgreSQL e com a chave de assinatura do JWT:
+
+Fragmento do código
+PORT=3000
+DATABASE_URL="postgresql://postgres.seucodigo:SENHA_AQUI@aws-0-sa-east-1.pooler.supabase.com:6543/postgres"
+JWT_SECRET="nossa_chave_secreta_aqui"
+4. Estrutura de Tabelas (SQL)
+As tabelas abaixo devem ser criadas no banco de dados através do editor SQL do Supabase para garantir a integridade referencial dos dados:
+
+SQL
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE products (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(100) NOT NULL,
+  description TEXT,
+  price DECIMAL(10,2) NOT NULL,
+  stock INTEGER DEFAULT 0,
+  image_url TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE quotes (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  file_url TEXT NOT NULL,
+  material VARCHAR(50) DEFAULT 'PLA',
+  estimated_grams DECIMAL(10,2),
+  estimated_hours DECIMAL(10,2),
+  calculated_price DECIMAL(10,2),
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE orders (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  quote_id INTEGER REFERENCES quotes(id) ON DELETE SET NULL,
+  total_value DECIMAL(10,2) NOT NULL,
+  item_count INTEGER NOT NULL,
+  status VARCHAR(20) DEFAULT 'preparing' CHECK (status IN ('preparing', 'printing', 'ready', 'delivered')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+PARTE 2: Guia de Integração e Consumo para o Front-end
+Esta seção orienta a equipe de desenvolvimento móvel sobre como comunicar o aplicativo React Native com os endpoints disponíveis no servidor.
+
+1. Fluxo de Comunicação HTTP
+O Front-end realiza requisições para a API e recebe respostas padronizadas em formato JSON. Toda rota que possuir a classificação de Rota Protegida exige que o aplicativo envie o Token JWT obtido no momento do login dentro do cabeçalho de autorização da requisição HTTP (Authorization: Bearer <token>).
+
+2. Mapeamento de Endpoints
+Autenticação e Cadastro
+POST /register (Pública): Cria uma nova conta de usuário. Armazena a senha de forma criptografada no banco de dados[cite: 3].
+
+POST /login (Pública): Valida as credenciais de acesso. Retorna os dados do perfil do usuário e o Token de autorização que deve ser persistido no aplicativo.
+
+Catálogo de Produtos
+GET /products (Pública): Lista todos os itens do banco de dados em ordem decrescente de criação. Utilizado na tela de navegação anônima.
+
+POST /products (Protegida - Apenas Admin): Permite o cadastro de novos objetos na vitrine.
+
+Gestão de Orçamentos
+POST /quotes (Protegida - Usuário Logado): Recebe os dados de peso, tempo e material da peça. O servidor realiza o cálculo financeiro de forma automática e define o status do orçamento como pendente (pending).
+
+PUT /quotes/:id/status (Protegida - Apenas Admin): Permite a aprovação (approved) ou rejeição (rejected) do orçamento solicitado.
+
+Processamento de Pedidos
+POST /orders (Protegida - Usuário Logado): Converte um orçamento aprovado ou compras diretas em um pedido em andamento.
+
+Regra de Negócio: Se o campo item_count enviado pelo aplicativo for maior ou igual a 10 unidades, o servidor aplica automaticamente um desconto de 10% sobre o valor total do pedido antes de salvá-lo no banco de dados.
+
+Dashboard Analítico
+GET /dashboard (Protegida - Apenas Admin): Executa consultas simultâneas no banco de dados e retorna o faturamento acumulado, total de pedidos, orçamentos pendentes e volume de produtos em um único objeto JSON.
+
+PARTE 3: Protocolo de Testes Manuais (Thunder Client)
+Para testar a funcionalidade de cada rota antes de programar as chamadas no código do aplicativo, utilize a extensão Thunder Client do VS Code.
+
+Passo A: Preparação do Ambiente
+Acesse o menu de Extensões do VS Code (Ctrl+Shift+X), pesquise por Thunder Client e clique em instalar.
+
+Certifique-se de que o servidor local está ativo e rodando no terminal do editor.
+
+Clique no ícone de raio disponibilizado no menu lateral esquerdo para abrir o cliente de testes.
+
+Passo B: Execução de Requisições Simples (Exemplo: Listar Produtos)
+Clique em New Request no painel da extensão.
+
+Defina o método HTTP como GET.
+
+No campo de endereço, insira a URL: http://localhost:3000/products.
+
+Pressione o botão Send. A resposta contendo a lista de produtos estruturada será exibida no painel à direita.
+
+Passo C: Envio de Parâmetros e Captura de Token (Exemplo: Login)
+Crie uma nova requisição e mude o método HTTP para POST.
+
+Insira o endereço do endpoint: http://localhost:3000/login.
+
+Abaixo do campo de endereço, selecione a aba Body e clique na opção JSON.
+
+Escreva as credenciais do usuário seguindo a estrutura padrão:
+
+JSON
+{
+  "email": "usuario@email.com",
+  "password": "senha123"
+}
+5. Clique em **Send**. O servidor retornará o Token de acesso. Copie o código gerado sem as aspas.
+
+### Passo D: Requisições em Rotas Protegidas (Exemplo: Solicitar Orçamento)
+1. Configure a requisição com o método correspondente (Exemplo: `POST http://localhost:3000/quotes`).
+2. Navegue até a aba **Auth**, localizada ao lado da aba Body.
+3. No campo de seleção de tipo de autenticação, mude de *None* para **Bearer**.
+4. Cole o Token copiado anteriormente na caixa de texto indicada.
+5. Retorne para a aba **Body**, insira o JSON com os dados do orçamento e clique em **Send** para processar a requisição autenticada.
