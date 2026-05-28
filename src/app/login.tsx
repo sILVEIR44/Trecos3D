@@ -22,6 +22,10 @@ export default function Login() {
     router.push("/recuperar");
   }
 
+  function handleNavigateHome() {
+    router.push("/home");
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.box}>
@@ -61,6 +65,7 @@ export default function Login() {
             titulo="Entrar"
             color="white"
             border={2}
+            onPress={handleNavigateHome}
             borderColor="black"
             backgroundColor={"black"}
           ></Botao>
