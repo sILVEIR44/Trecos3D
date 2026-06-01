@@ -24,7 +24,7 @@ export default function Login() {
       const token = response.data.token;
       console.log("Token recebido: ", token);
 
-      alert("Vitória! Logado com sucesso.")
+      alert("Logado com sucesso.")
 
       router.push("/home");
     } catch (error) {

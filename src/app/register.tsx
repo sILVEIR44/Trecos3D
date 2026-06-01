@@ -7,17 +7,49 @@ import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { Botao } from "@/components/Buttom/button";
 import { goBack } from "expo-router/build/global-state/routing";
+import api from "../services/authService";
 
 export default function Login() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
-
-  const [senha, setSenha] = useState("");
-
   const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [confirmaSenha, setConfirmaSenha] = useState("");
 
+  async function handleRegister() {
+    //verifica se ta preenchido
+    if (!nome || !email || !senha) {
+      alert("Atenção! Preencha todos os campos do pergaminho.");
+      return;
+    }
+    // verifica se as senhas tao iguais
+    if (senha !== confirmaSenha) {
+      alert("As senhas não coincidem.");
+      return;
+    }
+    try {
+      //envia pro servidor
+      const response = await api.post('/register', {
+        name: nome,
+        email: email,
+        password: senha
+      });
+      alert("Usuário criado com sucesso!");
+      setNome("");
+      setEmail("");
+      setSenha("");
+      setConfirmaSenha("");
+      
+      //vai pra tela de login agora
+      router.replace("/login");
 
+    } catch (error) {
+      console.log("Erro na criação de conta do usuário: ", error);
+      alert("Falha ao criar a conta. Verifique se o e-mail já existe ou se o servidor está ativo.");
+    }
+  }
+  
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.box}>
@@ -33,9 +65,8 @@ export default function Login() {
           <View style={styles.input}>
             <TextInput
               placeholder="Digite seu nome"
-              secureTextEntry={true}
               onChangeText={setNome}
-              value={senha}
+              value={nome}
             ></TextInput>
           </View>
           <Text style={styles.txt}>Email</Text>
@@ -60,8 +91,8 @@ export default function Login() {
             <TextInput
               placeholder="Confirme sua senha"
               secureTextEntry={true}
-              onChangeText={setSenha}
-              value={senha}
+              onChangeText={setConfirmaSenha}
+              value={confirmaSenha}
             ></TextInput>
           </View>
         </View>
@@ -72,7 +103,7 @@ export default function Login() {
             border={2}
             borderColor="black"
             backgroundColor={"black"}
-            onPress={goBack}
+            onPress={handleRegister}
           ></Botao>
         </View>
       </View>
