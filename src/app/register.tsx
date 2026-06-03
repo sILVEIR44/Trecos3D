@@ -67,6 +67,7 @@ export default function Login() {
               placeholder="Digite seu nome"
               onChangeText={setNome}
               value={nome}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
             ></TextInput>
           </View>
           <Text style={styles.txt}>Email</Text>
@@ -75,6 +76,7 @@ export default function Login() {
               placeholder="Digite seu Email"
               onChangeText={setEmail}
               value={email}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
             ></TextInput>
           </View>
           <Text style={styles.txtSenha}>Senha</Text>
@@ -84,6 +86,7 @@ export default function Login() {
               secureTextEntry={true}
               onChangeText={setSenha}
               value={senha}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
             ></TextInput>
           </View>
           <Text style={styles.txtSenha}>Confirmação de senha</Text>
@@ -93,6 +96,7 @@ export default function Login() {
               secureTextEntry={true}
               onChangeText={setConfirmaSenha}
               value={confirmaSenha}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
             ></TextInput>
           </View>
         </View>
@@ -121,9 +125,9 @@ const styles = StyleSheet.create({
   box: {
     borderWidth: 2,
     width: "100%",
-    height: "80%",
     alignItems: "center",
     gap: 20,
+    paddingBottom: 20
   },
   icon: {
     backgroundColor: "black",

@@ -1,5 +1,5 @@
 import { View, StyleSheet, TextInput, TouchableOpacity } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { theme } from "@/theme";
@@ -7,12 +7,22 @@ import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { Botao } from "@/components/Buttom/button";
 import api from "../services/authService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Login() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  useEffect(() => {
+    async function verificarToken() {
+      const token = await AsyncStorage.getItem("@token");
+      if (token) {
+        router.replace("/home");
+      }
+    }
+    verificarToken();
+  }, []);
 
   async function executarLogin() {
     try{
@@ -23,10 +33,12 @@ export default function Login() {
 
       const token = response.data.token;
       console.log("Token recebido: ", token);
+      //guarda o token no dispositivo
+      await AsyncStorage.setItem("@token", token);
 
       alert("Logado com sucesso.")
 
-      router.push("/home");
+      router.replace("/home");
     } catch (error) {
       alert("Acesso Negado: E-mail ou senha inválidos. ");
       console.log(error);
@@ -62,6 +74,7 @@ export default function Login() {
               placeholder="Digite seu Email"
               onChangeText={setEmail}
               value={email}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
             ></TextInput>
           </View>
           <Text style={styles.txtSenha}>Senha</Text>
@@ -71,6 +84,7 @@ export default function Login() {
               secureTextEntry={true}
               onChangeText={setSenha}
               value={senha}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
             ></TextInput>
           </View>
           <View style={styles.esqueciSenhaBox}>
@@ -107,13 +121,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 10,
   },
+
   box: {
     borderWidth: 2,
     width: "100%",
-    height: "70%",
     alignItems: "center",
     gap: 20,
+    paddingTop: 30,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    borderRadius: 10,
   },
+
   icon: {
     backgroundColor: "black",
     padding: 10,
@@ -121,23 +140,28 @@ const styles = StyleSheet.create({
     marginVertical: 15,
     width: "100%",
   },
+
   header: {
     alignItems: "center",
   },
+
   titulo: {
     fontFamily: theme.fonts.bold,
     fontSize: theme.fontSize.xl,
   },
+
   mid: {
     width: "100%",
     alignItems: "flex-start",
     justifyContent: "flex-start",
     paddingHorizontal: 20,
   },
+
   input: {
     borderWidth: 2,
     width: "100%",
-    height: 40,
+    height: 50,
+    paddingHorizontal: 15,
     marginTop: 10,
     borderRadius: 8,
     borderColor: theme.colors.cinzaClaro,
@@ -145,33 +169,40 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "center",
   },
+
   txt: {
     fontFamily: theme.fonts.bold,
     fontSize: theme.fontSize.md,
     paddingTop: 20,
   },
+
   txtSenha: {
     fontFamily: theme.fonts.bold,
     fontSize: theme.fontSize.md,
     paddingTop: 40,
   },
+
   esqueciSenha: {
     fontFamily: theme.fonts.bold,
   },
+
   esqueciSenhaBox: {
     width: "100%",
     alignItems: "flex-end",
     paddingRight: 5,
     paddingTop: 7,
   },
+
   botao: {
     width: "100%",
     paddingHorizontal: 10,
     paddingTop: 20,
   },
+
   cadastre: {
     fontFamily: theme.fonts.bold,
   },
+
   cadastreBox: {
     flexDirection: "row",
     gap: 10,

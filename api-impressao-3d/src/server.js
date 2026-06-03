@@ -9,41 +9,51 @@ const { verificarToken, verificarAdmin } = require('./middlewares/auth');
 app.use(express.json());
 app.use(cors());
 
+const multer = require('multer');
+const { createClient } = require('@supabase/supabase-js');
+
+// config do Multer (guarda o arquivo na memoria temporariamente para envio rapido)
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Config do Supabase JS (so para guardar a imagem no storage)
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 // Rota de Teste 
 app.get('/', (req, res) => {
   res.json({ message: 'A API de Impressão 3D está online.' });
 });
 
-//   ROTA 1: Criar um Usuário/Admin
+//   rota: Criar um User/Admin
 app.post('/register', async (req, res) => {
   try {
-    // 1. O que esperamos receber do celular ou do teste?
+    // o que esperamos receber do celular ou do teste?
     const { name, email, password, role } = req.body;
 
-    // 2. O porteiro verifica se os dados vieram vazios
+    //  verifica se os dados vieram vazios
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Faltam dados obrigatórios!' });
     }
 
-    // 3. A Criptografia: Embaralha a senha 10 vezes
+    //  Criptografia: Embaralha a senha 10 vezes
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // 4. Insere ao Banco de Dados
+    // Insere ao Banco de Dados
     const query = `
       INSERT INTO users (name, email, password_hash, role) 
       VALUES ($1, $2, $3, $4) 
       RETURNING id, name, email, role;
     `;
     
-    // Os valores que vão substituir os $1, $2, $3, $4
+    // Os valores que vao substituir os $1, $2, $3, $4
     const values = [name, email, passwordHash, role || 'user'];
 
     const result = await db.query(query, values);
 
-    // 5. Retorna a vitória
+    // 5. Retorna sucesso
     res.status(201).json({ 
-      message: 'Usuário forjado com sucesso!', 
+      message: 'Usuário criado com sucesso!', 
       user: result.rows[0] 
     });
 
@@ -57,17 +67,70 @@ app.post('/register', async (req, res) => {
   }
 });
 
-//   ROTA 2: O Portão de Entrada (Login)
+app.post('/orcamentos', upload.single('file'), async (req, res) => {
+    try {
+        // 1. O guarda abre o pacote
+        const { material, estimated_grams, calculated_price, user_id } = req.body;
+        const file = req.file;
+
+        if (!file) {
+            return res.status(400).json({ error: 'A imagem da peça é obrigatória!' }); //pegou mal essa frase ai...
+        }
+
+        console.log(`Recebendo orçamento do aldeão ${user_id}...`);
+
+        // 2. Criar um nome único para a imagem
+        const nomeArquivo = `${user_id}_${Date.now()}_${file.originalname}`;
+
+        // 3. Enviar para o cofre do Supabase (Storage)
+        const { error: erroUpload } = await supabase.storage
+            .from('orcamentos')
+            .upload(nomeArquivo, file.buffer, {
+                contentType: file.mimetype,
+            });
+
+        if (erroUpload) {
+            console.error("Erro no cofre:", erroUpload);
+            return res.status(500).json({ error: 'Falha ao guardar a imagem no cofre.' });
+        }
+
+        // pega o url público da imagem que foi guardado
+        const { data: urlData } = supabase.storage
+            .from('orcamentos')
+            .getPublicUrl(nomeArquivo);
+        
+        const publicUrl = urlData.publicUrl;
+
+        // escreve na tabela os negocio
+        const query = `
+            INSERT INTO quotes (user_id, file_url, material, estimated_grams, calculated_price, status)
+            VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
+        `;
+        const values = [user_id, publicUrl, material, estimated_grams, calculated_price, 'pendente'];
+
+        const result = await db.query(query, values);
+
+        //  msg deu certo
+        res.status(201).json({ 
+            message: 'Orçamento criado com sucesso!', 
+            orcamento: result.rows[0] 
+        });
+
+    } catch (error) {
+        console.error('Erro ao criar orçamento:', error);
+        res.status(500).json({ error: 'Erro interno no servidor.' });
+    }
+});
+
+// rota login (Login)
 app.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1. O usuário mandou os dados?
     if (!email || !password) {
       return res.status(400).json({ error: 'E-mail e senha são obrigatórios!' });
     }
 
-    // 2. Busca o habitante no banco de dados
     const userResult = await db.query('SELECT * FROM users WHERE email = $1', [email]);
     
     if (userResult.rows.length === 0) {
@@ -76,22 +139,21 @@ app.post('/login', async (req, res) => {
 
     const user = userResult.rows[0];
 
-    // 3. Verifica se a senha bate com a senha embaralhada do banco
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Senha incorreta!' });
     }
 
-    // 4. A Forja da Pulseira VIP (JWT)
-    // Guardamos o ID e a Patente (role) do usuário dentro do token
+    // faz pulseira VIP (JWT)
+    // guardamos o ID e a patente (role) do user dentro do token
     const token = jwt.sign(
       { userId: user.id, role: user.role }, 
       process.env.JWT_SECRET, 
-      { expiresIn: '7d' } // A pulseira vale por 7 dias
+      { expiresIn: '7d' } //  pulseira vale por 7 dias
     );
 
-    // 5. Entrega a pulseira e os dados para o aplicativo do celular
+    // entrega a pulseira e os dados para o aplicativo do celular
     res.json({
       message: 'Bem-vindo de volta!',
       user: {
@@ -105,19 +167,19 @@ app.post('/login', async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Erro interno no portão de acesso.' });
+    res.status(500).json({ error: 'Erro interno no login.' });
   }
 });
-//Rota de teste
+//rota de teste
 app.get('/cofre', verificarToken, verificarAdmin, (req, res) => {
   res.json({
-    message: 'Portões abertos! Bem-vindo ao cofre, Superadmin.',
+    message: 'Acesso concedido! Bem-vindo ao sistema, Superadmin.',
     seuId: req.userId,
     suaPatente: req.userRole
   });
 });
 
-//ROTA adicionar produto ao catalogo (apenas admin)
+//rota adicionar produto ao catalogo (apenas admin)
 app.post('/products', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const { title, description, price, stock, image_url } = req.body;
@@ -146,7 +208,7 @@ app.post('/products', verificarToken, verificarAdmin, async (req, res) => {
   }
 });
 
-//ROTA Listar produtos (aberta para todos)
+//rota Listar produtos (aberta para todos)
 app.get('/products', async (req, res) => {
   try {
     const result = await db.query('SELECT * FROM products ORDER BY created_at DESC');
@@ -157,7 +219,7 @@ app.get('/products', async (req, res) => {
   }
 });
 
-//ROTA Criar orçamento com cálculo automático 
+//rota Criar orçamento com cálculo automático 
 app.post('/quotes', verificarToken, async (req, res) => {
   try {
     const { file_url, material, estimated_grams, estimated_hours } = req.body;
@@ -195,7 +257,7 @@ app.post('/quotes', verificarToken, async (req, res) => {
   }
 });
 
-//ROTA Atualizar status orçamento
+//rota Atualizar status orçamento
 app.put('/quotes/:id/status', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const quoteId = req.params.id; //PEGA ID URL
@@ -227,7 +289,7 @@ app.put('/quotes/:id/status', verificarToken, verificarAdmin, async (req, res) =
   }
 });
 
-//ROTA Criar pedido
+//rota Criar pedido
 app.post('/orders', verificarToken, async (req, res) => {
   try {
     const { quote_id, total_value, item_count } = req.body;
@@ -268,7 +330,7 @@ app.post('/orders', verificarToken, async (req, res) => {
   }
 });
 
-//ROTA Dashboard
+//rota Dashboard
 app.get('/dashboard', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const [revenueResult, quotesResult, productsResult] = await Promise.all([

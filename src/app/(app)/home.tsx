@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image } from "react-native";
+import React, { useState, useEffect, useContext } from "react";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image, TouchableOpacity } from "react-native";
 import api from "../../services/authService";
+import { CartContext } from "../../context/CartContext";
 
 export default function Home() {
   // Onde os produtos serão guardados
   const [produtos, setProdutos] = useState<any[]>([]);
   // Uma roda de loading
   const [carregando, setCarregando] = useState(true);
+  const {adicionarAoCarrinho} = useContext(CartContext);
 
   // A função de busca
   async function buscarCatalogo() {
@@ -18,15 +20,14 @@ export default function Home() {
       setProdutos(response.data);
     } catch (error) {
       console.log("Erro ao buscar a vitrine: ", error);
-      alert("Falha de comunicação com os armazéns do Império.");
+      alert("Falha de comunicação com os armazéns.");
     } finally {
       // Para o load
       setCarregando(false); 
     }
   }
 
-  // O useEffect com essa array vazia [] no final significa: 
-  // "Rode esta função APENAS UMA VEZ assim que o usuário entrar nesta tela."
+  // useEffect com array vazio [] no final significa executa esta função uma unica vez assim que o user entrar nesta tela.
   useEffect(() => {
     buscarCatalogo();
   }, []);
@@ -43,6 +44,12 @@ export default function Home() {
         <View style={styles.infoProduto}>
           <Text style={styles.tituloProduto}>{item.title}</Text>
           <Text style={styles.precoProduto}>R$ {item.price}</Text>
+          <TouchableOpacity
+            style={styles.botaoAdicionar}
+            onPress={() => adicionarAoCarrinho(item)}
+          >
+            <Text style={styles.textoBotao}>+ Carrinho</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -76,6 +83,7 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#F5F5F5",
   },
+  
   headerTitulo: {
     fontSize: 24,
     fontWeight: "bold",
@@ -83,6 +91,7 @@ const styles = StyleSheet.create({
     marginTop: 30,
     textAlign: "center",
   },
+
   cardProduto: {
     backgroundColor: "white",
     borderRadius: 8,
@@ -91,31 +100,52 @@ const styles = StyleSheet.create({
     padding: 10,
     elevation: 3, 
   },
+
   imagem: {
     width: 80,
     height: 80,
     borderRadius: 8,
     backgroundColor: "#E0E0E0",
   },
+
   imagemVazia: {
     width: 80,
     height: 80,
     borderRadius: 8,
     backgroundColor: "#D3D3D3",
   },
+
   infoProduto: {
     marginLeft: 15,
     justifyContent: "center",
   },
+
   tituloProduto: {
     fontSize: 18,
     fontWeight: "bold",
   },
+
   precoProduto: {
     fontSize: 16,
     color: "#2E8B57", 
     marginTop: 5,
   },
+
+  botaoAdicionar: {
+    backgroundColor: "black",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginTop: 10,
+    alignSelf: "flex-start",
+  },
+
+  textoBotao: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+
   textoVazio: {
     textAlign: "center",
     marginTop: 50,

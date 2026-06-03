@@ -34,6 +34,7 @@ export default function Recuperar() {
               placeholder="Email"
               onChangeText={setEmail}
               value={email}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
             ></TextInput>
           </View>
         </View>
