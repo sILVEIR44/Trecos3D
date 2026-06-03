@@ -18,6 +18,10 @@ export default function Index() {
     router.push("/login");
   }
 
+  function handleNavigateHome() {
+    router.push("/home"); 
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -89,7 +93,7 @@ export default function Index() {
           <Botao titulo="Entrar na Loja" onPress={handleNavigateLogin} color={theme.colors.white} icon={<Feather name="arrow-right" size={24} color="white" />}/>
         </LinearGradient>
 
-        <Botao titulo="Explorar sem Login" onPress={handleNavigateLogin} color={"black"}  border={2} borderColor={theme.colors.cinzaClaro}/>
+        <Botao titulo="Explorar sem Login" onPress={handleNavigateHome} color={"black"}  border={2} borderColor={theme.colors.cinzaClaro}/>
       </View>
     </SafeAreaView>
   );

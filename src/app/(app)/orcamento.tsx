@@ -1,0 +1,318 @@
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Platform } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
+
+export default function Orcamento() {
+    const {user} = useContext(AuthContext) as any;
+    const [imagem, setImagem] = useState<string | null>(null);
+    const [tamanho, setTamanho] = useState('Pequeno');
+    const [qualidade, setQualidade] = useState('Padrão');
+
+    const escolherImagem = async () => {
+        const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permissao.status !== 'granted') {
+        Alert.alert('Atenção', 'Precisamos de permissão para acessar as suas fotos!');
+        return;
+        }
+
+        const resultado = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+        });
+
+        if (!resultado.canceled) {
+        setImagem(resultado.assets[0].uri);
+        }
+    };
+
+  // Regra de precificacao simples baseada nas escolhas do user
+  const calcularPreco = () => {
+    let precoBase = 0;
+    
+    // tamanho define o preco base
+    if (tamanho === 'Pequeno') precoBase = 25;
+    else if (tamanho === 'Médio') precoBase = 60;
+    else if (tamanho === 'Grande') precoBase = 120;
+
+    // qualidade atua como um multiplicador
+    let multiplicador = 1;
+    if (qualidade === 'Rascunho') multiplicador = 0.8; 
+    else if (qualidade === 'Padrão') multiplicador = 1.2; 
+    else if (qualidade === 'Alta') multiplicador = 1.8; 
+
+    const valorFinal = precoBase * multiplicador;
+    return valorFinal.toFixed(2).replace('.', ','); // Formata para real
+  };
+
+  const BotaoSelecao = ({ titulo, valorAtual, setValor }: any) => (
+    <TouchableOpacity 
+      style={[styles.botaoOpcao, valorAtual === titulo && styles.botaoOpcaoAtivo]} 
+      onPress={() => setValor(titulo)}
+    >
+      <Text style={[styles.textoOpcao, valorAtual === titulo && styles.textoOpcaoAtivo]}>
+        {titulo}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const enviarOrcamento = async () => {
+    if (!imagem) {
+      Alert.alert('Atenção', 'Precisamos de uma imagem da peça!');
+      return;
+    }
+
+    try {
+        const pacote = new FormData();
+        if (Platform.OS === 'web') {
+            //pra rodar na web, expo go ta falhando toda hora...
+            const respostaImg = await fetch(imagem);
+            const blob = await respostaImg.blob();
+            pacote.append('file', blob, 'imagem_orcamento.jpg'); 
+        }   else {
+            // pra rodar no celular, expo go funciona normal
+            const nomeArquivo = imagem.split('/').pop() || 'imagem.jpg';
+            const tipo = `image/${nomeArquivo.split('.').pop()}`;
+            // @ts-ignore - O TypeScript não gosta deste formato, mas o React Native precisa dele
+            pacote.append('file', {
+            uri: imagem,
+            name: nomeArquivo,
+            type: tipo,
+            });
+        }
+        
+      let gramas = 50;
+      if (tamanho === 'Médio') gramas = 150;
+      if (tamanho === 'Grande') gramas = 300;
+
+      const valorFinal = parseFloat(calcularPreco().replace(',', '.'));
+
+      // adiciona os textos ao pacote
+      pacote.append('material', qualidade);
+      pacote.append('estimated_grams', String(gramas));
+      pacote.append('calculated_price', String(valorFinal));
+      pacote.append('user_id', String(user?.id || 1)); // envia o ID do user (ou 1 como fallback)
+
+      //  dispara o pacote para API
+      const urlDaAPI = 'http://192.168.5.235:3000/orcamentos'; 
+
+      const resposta = await fetch(urlDaAPI, {
+        method: 'POST',
+        body: pacote,
+      });
+
+      if (!resposta.ok) {
+        throw new Error('Falha ao comunicar com os portões da API.');
+      }
+
+      Alert.alert('Sucesso!', 'O orçamento foi enviado com sucesso!');
+      
+      // limpa 
+      setImagem(null);
+      setTamanho('Pequeno');
+      setQualidade('Padrão');
+
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Erro', 'Não foi possível enviar o orçamento. Tente novamente.');
+    }
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.titulo}>Novo Orçamento 3D</Text>
+      <Text style={styles.subtitulo}>Responda a duas perguntas simples e descubra o valor na hora.</Text>
+
+      {/* 1. Imagem */}
+      <View style={styles.areaImagem}>
+        {imagem ? (
+          <Image source={{ uri: imagem }} style={styles.imagemEscolhida} />
+        ) : (
+          <Text style={styles.textoSemImagem}>Nenhuma imagem selecionada</Text>
+        )}
+      </View>
+      <TouchableOpacity style={styles.botaoCamera} onPress={escolherImagem}>
+        <Text style={styles.textoBotao}> Anexar Imagem</Text>
+      </TouchableOpacity>
+
+      {/* 2. perguntas simples pros leigos */}
+      <View style={styles.secaoPerguntas}>
+        <Text style={styles.labelPergunta}>1. Qual o tamanho aproximado?</Text>
+        <View style={styles.linhaBotoes}>
+          <BotaoSelecao titulo="Pequeno" valorAtual={tamanho} setValor={setTamanho} />
+          <BotaoSelecao titulo="Médio" valorAtual={tamanho} setValor={setTamanho} />
+          <BotaoSelecao titulo="Grande" valorAtual={tamanho} setValor={setTamanho} />
+        </View>
+
+        <Text style={styles.labelPergunta}>2. Qual o nível de detalhe (qualidade)?</Text>
+        <View style={styles.linhaBotoes}>
+          <BotaoSelecao titulo="Rascunho" valorAtual={qualidade} setValor={setQualidade} />
+          <BotaoSelecao titulo="Padrão" valorAtual={qualidade} setValor={setQualidade} />
+          <BotaoSelecao titulo="Alta" valorAtual={qualidade} setValor={setQualidade} />
+        </View>
+      </View>
+
+        {/* resultado auto  */}
+      <View style={styles.cartaoPreco}>
+        <Text style={styles.textoPrecoLabel}>Valor Estimado:</Text>
+        <Text style={styles.textoPrecoValor}>R$ {calcularPreco()}</Text>
+      </View>
+
+      {/* botao de envio */}
+      <TouchableOpacity style={styles.botaoEnviar} onPress={enviarOrcamento}>
+        <Text style={styles.textoBotao}>Solicitar Orçamento</Text>
+      </TouchableOpacity>
+
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F5F5F5'
+ },
+
+  content: { 
+    padding: 20, 
+    alignItems: 'center', 
+    paddingBottom: 40 
+},
+
+  titulo: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    color: '#333', 
+    marginBottom: 5, 
+    marginTop: 10 
+},
+
+  subtitulo: { 
+    fontSize: 14,
+     color: '#666',
+      textAlign: 'center',
+       marginBottom: 25 
+    },
+  
+  areaImagem: { 
+    width: '100%', 
+    height: 180, 
+    backgroundColor: '#E8E8E8', 
+    borderRadius: 10, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginBottom: 15, 
+    overflow: 'hidden', 
+    borderWidth: 1, 
+    borderColor: '#CCC', 
+    borderStyle: 'dashed' 
+},
+
+  imagemEscolhida: { 
+    width: '100%', 
+    height: '100%' 
+},
+
+  textoSemImagem: { 
+    color: '#999' 
+},
+
+  botaoCamera: { 
+    backgroundColor: '#555', 
+    padding: 12, 
+    borderRadius: 8, 
+    width: '100%', 
+    alignItems: 'center', 
+    marginBottom: 30 
+},
+  
+  secaoPerguntas: {
+     width: '100%', 
+     marginBottom: 20 
+    },
+
+  labelPergunta: { 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    color: '#444', 
+    marginBottom: 10, 
+    marginTop: 10 
+},
+
+  linhaBotoes: { 
+    flexDirection: 'row',
+     justifyContent: 'space-between', 
+     marginBottom: 10 
+    },
+  
+  botaoOpcao: { 
+    flex: 1, backgroundColor: '#E0E0E0', 
+    padding: 10, 
+    borderRadius: 8, 
+    alignItems: 'center', 
+    marginHorizontal: 4, 
+    borderWidth: 1, 
+    borderColor: 'transparent' 
+},
+
+  botaoOpcaoAtivo: { 
+    backgroundColor: '#E6F0FA', 
+    borderColor: '#007BFF' 
+  },
+
+  textoOpcao: { 
+    color: '#555', 
+    fontWeight: '500', 
+    fontSize: 13 
+  },
+
+  textoOpcaoAtivo: { 
+    color: '#007BFF', 
+    fontWeight: 'bold' 
+  },
+
+  cartaoPreco: { 
+    backgroundColor: '#FFF', 
+    width: '100%', 
+    padding: 20, 
+    borderRadius: 12, 
+    alignItems: 'center', 
+    shadowColor: "#000", 
+    shadowOffset: { 
+        width: 0, 
+        height: 2 
+    }, 
+    shadowOpacity: 0.1, 
+    shadowRadius: 4, 
+    elevation: 3, 
+    marginBottom: 30, 
+    borderWidth: 1, 
+    borderColor: '#EEE' 
+},
+
+  textoPrecoLabel: { 
+    fontSize: 16, 
+    color: '#666', 
+    marginBottom: 5 },
+
+  textoPrecoValor: { 
+    fontSize: 32, 
+    fontWeight: 'bold', 
+    color: '#28A745' },
+
+  botaoEnviar: { 
+    backgroundColor: '#000', 
+    padding: 18,
+     borderRadius: 10,
+     width: '100%',
+     alignItems: 'center' 
+  },
+
+  textoBotao: { 
+    color: '#FFF', 
+    fontWeight: 'bold',
+     fontSize: 16 },
+});
