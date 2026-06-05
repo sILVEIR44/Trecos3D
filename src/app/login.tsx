@@ -1,44 +1,50 @@
 import { View, StyleSheet, TextInput, TouchableOpacity } from "react-native";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { theme } from "@/theme";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { Botao } from "@/components/Buttom/button";
+import { AuthContext } from "@/context/AuthContext";
 import api from "../services/authService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useContext } from "react";
-import { AuthContext } from "../context/AuthContext";
 
 export default function Login() {
   const router = useRouter();
-  const { signIn } = useContext(AuthContext);
+  const { signIn, token, user } = useContext(AuthContext) as any;
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
 
+  useEffect(() => {
+    if (token && user) {
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        router.replace("/admin");
+      } else { 
+        router.replace("/home");
+      }
+    }
+  }, [token, user]);
+
   async function executarLogin() {
-    try{
+    try {
       const response = await api.post('/login', {
         email: email,
         password: senha
       });
 
-      const { token, user } = response.data;
+      const { token: tokenRecebido, user: usuarioRecebido } = response.data;
 
-      await signIn(user, token);
+      await signIn(usuarioRecebido, tokenRecebido);
+      alert("Logado com sucesso.");
 
-      alert("Logado com sucesso.")
-
-      // Admin e superadmin vão para o painel, usuário comum vai para a loja
-      if (user.role === "admin" || user.role === "superadmin") {
-        router.replace("/(admin)/dashboard")
+      if (usuarioRecebido.role === "admin" || usuarioRecebido.role === "superadmin") {
+        router.replace("/admin");
       } else {
-        router.replace("/(app)/home")
+        router.replace("/home");
       }
     } catch (error) {
-      alert("Acesso Negado: E-mail ou senha inválidos. ");
+      alert("Acesso Negado: E-mail ou senha inválidos.");
       console.log(error);
     }
   }
@@ -87,7 +93,7 @@ export default function Login() {
           </View>
           <View style={styles.esqueciSenhaBox}>
             <TouchableOpacity onPress={handleNavigateRecuperar}>
-              <Text style={styles.esqueciSenha}>esqueci minha senha</Text>
+              <Text style={styles.esqueciSenha}>Esqueci minha senha</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -119,7 +125,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 10,
   },
-
   box: {
     borderWidth: 2,
     width: "100%",
@@ -130,7 +135,6 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     borderRadius: 10,
   },
-
   icon: {
     backgroundColor: "black",
     padding: 10,
@@ -138,23 +142,19 @@ const styles = StyleSheet.create({
     marginVertical: 15,
     width: "100%",
   },
-
   header: {
     alignItems: "center",
   },
-
   titulo: {
     fontFamily: theme.fonts.bold,
     fontSize: theme.fontSize.xl,
   },
-
   mid: {
     width: "100%",
     alignItems: "flex-start",
     justifyContent: "flex-start",
     paddingHorizontal: 20,
   },
-
   input: {
     borderWidth: 2,
     width: "100%",
@@ -167,40 +167,33 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "center",
   },
-
   txt: {
     fontFamily: theme.fonts.bold,
     fontSize: theme.fontSize.md,
     paddingTop: 20,
   },
-
   txtSenha: {
     fontFamily: theme.fonts.bold,
     fontSize: theme.fontSize.md,
     paddingTop: 40,
   },
-
   esqueciSenha: {
     fontFamily: theme.fonts.bold,
   },
-
   esqueciSenhaBox: {
     width: "100%",
     alignItems: "flex-end",
     paddingRight: 5,
     paddingTop: 7,
   },
-
   botao: {
     width: "100%",
     paddingHorizontal: 10,
     paddingTop: 20,
   },
-
   cadastre: {
     fontFamily: theme.fonts.bold,
   },
-
   cadastreBox: {
     flexDirection: "row",
     gap: 10,

@@ -1,27 +1,27 @@
-import React, { useContext } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from "react-native"
-import { useRouter } from "expo-router"
-import { Ionicons } from "@expo/vector-icons"
-import { AuthContext } from "../../context/AuthContext"
+import React, { useContext } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { AuthContext } from "../../context/AuthContext";
 
 export default function Perfil() {
-  const router = useRouter()
-  const { user, signOut } = useContext(AuthContext)
+  const router = useRouter();
+  const { user, signOut } = useContext(AuthContext) as any;
 
-  async function realizarLogout() {
+  const realizarLogout = async () => {
     try {
-      await signOut()
-      router.replace("/login")
+      await signOut();
+      router.replace("/login");
     } catch (error) {
-      console.log("Erro ao sair: ", error)
-      Alert.alert("Erro", "Não foi possível sair. Tente novamente.")
+      console.log("Erro ao sair: ", error);
+      Alert.alert("Erro", "Não foi possível sair. Tente novamente.");
     }
-  }
+  };
 
   function confirmarSaida() {
     if (Platform.OS === "web") {
-      const querSair = window.confirm("Tem certeza que deseja sair?")
-      if (querSair) realizarLogout()
+      const querSair = window.confirm("Tem certeza que deseja sair?");
+      if (querSair) realizarLogout();
     } else {
       Alert.alert(
         "Fazer Logout",
@@ -30,7 +30,7 @@ export default function Perfil() {
           { text: "Ficar", style: "cancel" },
           { text: "Sair", style: "destructive", onPress: realizarLogout },
         ]
-      )
+      );
     }
   }
 
@@ -40,8 +40,11 @@ export default function Perfil() {
         <Ionicons name="person-circle-outline" size={100} color="#9810FA" />
         <Text style={styles.nome}>{user?.name ?? "Usuário"}</Text>
         <Text style={styles.email}>{user?.email ?? ""}</Text>
+        
         <View style={styles.badgeRole}>
-          <Text style={styles.badgeTexto}>{user?.role ?? "user"}</Text>
+          <Text style={styles.badgeTexto}>
+            {user?.role === 'admin' ? "Superadmin" : "Aldeão"}
+          </Text>
         </View>
       </View>
 
@@ -50,7 +53,7 @@ export default function Perfil() {
         <Text style={styles.botaoSairTexto}>Fazer Logout</Text>
       </TouchableOpacity>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -61,25 +64,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 20,
   },
-
   header: {
     alignItems: "center",
     marginBottom: 50,
   },
-
   nome: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#222",
     marginTop: 12,
   },
-
   email: {
     fontSize: 14,
     color: "#888",
     marginTop: 4,
   },
-
   badgeRole: {
     marginTop: 10,
     backgroundColor: "#E9D4FF",
@@ -87,14 +86,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 20,
   },
-
   badgeTexto: {
     color: "#9810FA",
     fontWeight: "bold",
     fontSize: 13,
     textTransform: "capitalize",
   },
-
   botaoSair: {
     backgroundColor: "#9810FA",
     flexDirection: "row",
@@ -107,10 +104,9 @@ const styles = StyleSheet.create({
     width: "80%",
     elevation: 3,
   },
-
   botaoSairTexto: {
     color: "white",
     fontWeight: "bold",
     fontSize: 16,
   },
-})
+});

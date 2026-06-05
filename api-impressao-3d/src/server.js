@@ -106,7 +106,7 @@ app.post('/orcamentos', upload.single('file'), async (req, res) => {
             INSERT INTO quotes (user_id, file_url, material, estimated_grams, calculated_price, status)
             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
         `;
-        const values = [user_id, publicUrl, material, estimated_grams, calculated_price, 'pendente'];
+        const values = [user_id, publicUrl, material, estimated_grams, calculated_price, 'pending'];
 
         const result = await db.query(query, values);
 
@@ -120,6 +120,26 @@ app.post('/orcamentos', upload.single('file'), async (req, res) => {
         console.error('Erro ao criar orçamento:', error);
         res.status(500).json({ error: 'Erro interno no servidor.' });
     }
+});
+
+//rota para listar os orçamentos do user
+app.get('/orcamentos/:user_id', async (req, res) => {
+  try {
+    const userId = req.params.user_id;
+    console.log(`Listando orçamentos para o aldeão ${userId}...`);
+    
+    const query = `
+      SELECT * FROM quotes 
+      WHERE user_id = $1 
+      ORDER BY created_at DESC;
+    `;
+
+    const result = await db.query(query, [userId]);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Erro ao listar orçamentos:', error);
+    res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
 });
 
 // rota login (Login)

@@ -29,8 +29,11 @@ export default function Home() {
 
   async function buscarProdutos() {
     try {
-      const response = await api.get("/products")
-      setProdutos(response.data)
+      const urlDaAPI = `http://192.168.5.235:3000/products`;
+      const response = await fetch(urlDaAPI);
+      const dados = await response.json();
+
+      setProdutos(dados)
     } catch (error) {
       console.log("Erro ao buscar produtos:", error)
     } finally {

@@ -19,41 +19,52 @@ export default function AppLayout() {
   if (isLoading || !user) return null;
 
   return (
-    <CartProvider>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: "black",
-          tabBarInactiveTintColor: "gray",
-          tabBarStyle: {
-            backgroundColor: "#ffffff",
-            borderTopWidth: 1,
-            borderTopColor: "#e0e0e0",
-            height: 65,
-            paddingBottom: 10,
-            paddingTop: 5,
-          },
-        }}
-      >
-        <Tabs.Screen
-          name="home"
-          options={{
-            title: "Loja",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="home-outline" size={size} color={color} />
-            ),
+      <CartProvider>
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            tabBarActiveTintColor: "black",
+            tabBarInactiveTintColor: "gray",
+            tabBarStyle: {
+              backgroundColor: "#ffffff",
+              borderTopWidth: 1,
+              borderTopColor: "#e0e0e0",
+              height: 65,
+              paddingBottom: 10,
+              paddingTop: 5,
+            },
           }}
-        />
+        >
+          <Tabs.Screen
+            name="home"
+            options={{
+              title: "Loja",
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="home-outline" size={size} color={color} />
+              ),
+            }}
+          />
 
-        <Tabs.Screen
-          name="carrinho"
-          options={{
-            title: "Carrinho",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="cart-outline" size={size} color={color} />
-            ),
-          }}
-        />
+          <Tabs.Screen
+            name="carrinho"
+            options={{
+              title: "Carrinho",
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="cart-outline" size={size} color={color} />
+              ),
+            }}
+          />
+
+          <Tabs.Screen
+            name="admin"
+            options={{
+              title: "Dashboard",
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="stats-chart-outline" size={size} color={color} />
+              ),
+              href: user?.role === 'admin' ? '/admin' : null,
+            }}
+            />
 
         <Tabs.Screen
           name="perfil"
