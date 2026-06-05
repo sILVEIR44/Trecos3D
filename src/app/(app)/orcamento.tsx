@@ -29,6 +29,27 @@ export default function Orcamento() {
         }
     };
 
+    const tirarFoto = async () => {
+      const permissao = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (permissao.status !== 'granted') {
+        Alert.alert('Acesso Negado', 'Precisamos de permissão para acessar a câmera!');
+        return;
+      }
+
+      // Abre a camera do dispo
+      const resultado = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, //so fotos
+        allowsEditing: true, //deixa o user cortar a foto depois de tirar
+        aspect: [4, 3], // proporção da foto
+        quality: 0.8, // qualidade boa
+      });
+      //senao cancelou e tirou foto, salva o estado
+      if (!resultado.canceled) { 
+        setImagem(resultado.assets[0].uri);
+      }
+    };
+
   // Regra de precificacao simples baseada nas escolhas do user
   const calcularPreco = () => {
     let precoBase = 0;
@@ -138,6 +159,10 @@ export default function Orcamento() {
         <Text style={styles.textoBotao}> Anexar Imagem</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity style={styles.botaoCamera} onPress={tirarFoto}>
+        <Text style={styles.textoBotao}> Tirar Foto Agora</Text>
+      </TouchableOpacity>
+      
       {/* 2. perguntas simples pros leigos */}
       <View style={styles.secaoPerguntas}>
         <Text style={styles.labelPergunta}>1. Qual o tamanho aproximado?</Text>

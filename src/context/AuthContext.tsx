@@ -12,6 +12,7 @@ type User = {
 // o mapa de tudo o que é guardado e feito (o que é que o app pode fazer com o user?)
 type AuthContextData = {
   user: User | null;
+  token: string | null;
   signIn: (userData: User, token: string) => Promise<void>;
   signOut: () => Promise<void>;
   isLoading: boolean;
@@ -23,6 +24,7 @@ export const AuthContext = createContext<AuthContextData>({} as AuthContextData)
 // 4. protetor(da acesso ao q ta dentro)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // assim que o app abre,verifica se o user ja tava logado antes
@@ -34,6 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (storedUser && storedToken) {
           setUser(JSON.parse(storedUser)); // Devolve a informacao do user para o estado, mantendo-o logado
+          setToken(storedToken); // Restaura o passe
         }
       } catch (error) {
         console.error('Erro ao ler os cofres do telemóvel:', error);
@@ -53,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // Seta o estado atual do usuário 
     setUser(userData);
+    setToken(token); // Seta o token
   };
 
   // Pra sair do app (Usada no Logout)
@@ -63,10 +67,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // Retira o utilizador do estado atual
     setUser(null);
+    setToken(null); 
   };
 
   return (
-    <AuthContext.Provider value={{ user, signIn, signOut, isLoading }}>
+    <AuthContext.Provider value={{ user, token, signIn, signOut,  isLoading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,24 +1,22 @@
-import React from "react";
+import React, { useContext } from "react"; 
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { AuthContext } from "../../context/AuthContext"; 
 
 export default function Perfil() {
-  const router = useRouter();
+  const router = useRouter();  
+  const { signOut, user } = useContext(AuthContext) as any;
 
-  async function realizarLogout() {
+  const realizarLogout = async () => {
     try {
-      //  esvazia o baú (remove o token)
-      await AsyncStorage.removeItem('@token');
-      
-      //  escoltado de volta para fora  (Login)
+      await signOut();
       router.replace("/login");
     } catch (error) {
       console.log("Erro ao sair: ", error);
       Alert.alert("Erro", "As engrenagens do sistema falharam ao tentar fechar os portões.");
     }
-  }
+  };
 
   function confirmarSaida() {
     if (Platform.OS === "web") {
@@ -26,24 +24,29 @@ export default function Perfil() {
         if (querSair) {
             realizarLogout();
         }
-  } else {
-    Alert.alert(
-      "Fazer Logout",
-      "Tem a certeza que deseja fazer logout?",
-      [
-        { text: "Ficar", style: "cancel" },
-        { text: "Sair", style: "destructive", onPress: realizarLogout }
-      ]
-    );
-  }
+    } else {
+      Alert.alert(
+        "Fazer Logout",
+        "Tem a certeza que deseja fazer logout?",
+        [
+          { text: "Ficar", style: "cancel" },
+          { text: "Sair", style: "destructive", onPress: realizarLogout }
+        ]
+      );
+    }
   }
   
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Ionicons name="person-circle-outline" size={100} color="black" />
-        <Text style={styles.nomeUsuario}>Thawan Oliveira</Text>
-        <Text style={styles.titulo}>Escravo</Text>
+        
+        <Text style={styles.nomeUsuario}>{user?.name || "Usuário"}</Text>
+        
+        {/*  Mostra a patente real: Superadmin ou Aldeão */}
+        <Text style={styles.titulo}>
+          {user?.role === 'admin' ? "Superadmin" : "Aldeão"}
+        </Text>
       </View>
 
       <View style={styles.menu}>
@@ -78,6 +81,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "gray",
     marginTop: 5,
+    textTransform: "capitalize",
   },
   menu: {
     width: "100%",

@@ -1,28 +1,30 @@
 import { View, StyleSheet, TextInput, TouchableOpacity } from "react-native";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { theme } from "@/theme";
 import { Text } from "@/components/Text";
 import { Ionicons } from "@expo/vector-icons";
 import { Botao } from "@/components/Buttom/button";
+import { AuthContext } from "@/context/AuthContext";
 import api from "../services/authService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Login() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const {signIn, token, user} = useContext(AuthContext);
+
   useEffect(() => {
-    async function verificarToken() {
-      const token = await AsyncStorage.getItem("@token");
-      if (token) {
+      if (token && user) {
+        if (user.role === 'admin') {
+          router.replace("/admin");
+        } else { 
         router.replace("/home");
+        }
       }
-    }
-    verificarToken();
-  }, []);
+    }, [token, user]);
 
   async function executarLogin() {
     try{
@@ -31,14 +33,18 @@ export default function Login() {
         password: senha
       });
 
-      const token = response.data.token;
-      console.log("Token recebido: ", token);
-      //guarda o token no dispositivo
-      await AsyncStorage.setItem("@token", token);
+      const tokenRecebido = response.data.token;
+      const user = response.data.user;
+      console.log("Token recebido: ", tokenRecebido);
 
+      await signIn(user, tokenRecebido);
       alert("Logado com sucesso.")
 
-      router.replace("/home");
+      if(user.role === "admin") {
+        router.replace("/admin");
+      } else {
+        router.replace("/home");
+      }
     } catch (error) {
       alert("Acesso Negado: E-mail ou senha inválidos. ");
       console.log(error);
