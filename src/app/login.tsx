@@ -8,21 +8,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { Botao } from "@/components/Buttom/button";
 import api from "../services/authService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 export default function Login() {
   const router = useRouter();
+  const { signIn } = useContext(AuthContext);
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  useEffect(() => {
-    async function verificarToken() {
-      const token = await AsyncStorage.getItem("@token");
-      if (token) {
-        router.replace("/home");
-      }
-    }
-    verificarToken();
-  }, []);
 
   async function executarLogin() {
     try{
@@ -31,14 +25,18 @@ export default function Login() {
         password: senha
       });
 
-      const token = response.data.token;
-      console.log("Token recebido: ", token);
-      //guarda o token no dispositivo
-      await AsyncStorage.setItem("@token", token);
+      const { token, user } = response.data;
+
+      await signIn(user, token);
 
       alert("Logado com sucesso.")
 
-      router.replace("/home");
+      // Admin e superadmin vão para o painel, usuário comum vai para a loja
+      if (user.role === "admin" || user.role === "superadmin") {
+        router.replace("/(admin)/dashboard")
+      } else {
+        router.replace("/(app)/home")
+      }
     } catch (error) {
       alert("Acesso Negado: E-mail ou senha inválidos. ");
       console.log(error);

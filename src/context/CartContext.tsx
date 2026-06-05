@@ -1,6 +1,5 @@
 import React, { createContext, useState, ReactNode } from 'react';
 
-// O molde do produto quando entra no carrinho
 export interface ProdutoCarrinho {
   id: string | number;
   title: string;
@@ -12,6 +11,9 @@ export interface ProdutoCarrinho {
 interface CartContextData {
   carrinho: ProdutoCarrinho[];
   adicionarAoCarrinho: (produto: any) => void;
+  removerDoCarrinho: (id: string | number) => void;
+  aumentarQuantidade: (id: string | number) => void;
+  diminuirQuantidade: (id: string | number) => void;
 }
 
 export const CartContext = createContext<CartContextData>({} as CartContextData);
@@ -32,14 +34,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
       );
       alert("Uma nova unidade foi adicionada ao seu carrinho!");
     } else {
-      // Se for novo, coloca-o no baú com a quantidade 1
       setCarrinho([...carrinho, { ...produto, quantidade: 1 }]);
       alert("Novo item adicionado ao carrinho!");
     }
   }
 
+  function removerDoCarrinho(id: string | number) {
+    setCarrinho(carrinho.filter(item => item.id !== id));
+  }
+
+  function aumentarQuantidade(id: string | number) {
+    setCarrinho(
+      carrinho.map(item =>
+        item.id === id ? { ...item, quantidade: item.quantidade + 1 } : item
+      )
+    );
+  }
+
+  function diminuirQuantidade(id: string | number) {
+    // Se quantidade for 1 e diminuir, remove o item
+    setCarrinho(
+      carrinho
+        .map(item =>
+          item.id === id ? { ...item, quantidade: item.quantidade - 1 } : item
+        )
+        .filter(item => item.quantidade > 0)
+    );
+  }
+
   return (
-    <CartContext.Provider value={{ carrinho, adicionarAoCarrinho }}>
+    <CartContext.Provider value={{ carrinho, adicionarAoCarrinho, removerDoCarrinho, aumentarQuantidade, diminuirQuantidade }}>
       {children}
     </CartContext.Provider>
   );

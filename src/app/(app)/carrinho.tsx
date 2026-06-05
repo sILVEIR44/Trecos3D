@@ -1,139 +1,251 @@
-import React, { useContext } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from "react-native";
-import { CartContext } from "../../context/CartContext";
+import React, { useContext } from "react"
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  Alert,
+} from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+import { CartContext } from "../../context/CartContext"
 
 export default function Carrinho() {
-  const { carrinho } = useContext(CartContext);
+  const { carrinho, removerDoCarrinho, aumentarQuantidade, diminuirQuantidade } =
+    useContext(CartContext)
 
-  // soma o valor total das riquezas
   const valorTotal = carrinho.reduce((total, item) => {
-    return total + (item.price * item.quantidade);
-  }, 0);
+    return total + item.price * item.quantidade
+  }, 0)
 
-  //  Como desenhar cada item do carrinho
-  function renderizarItemCarrinho({ item }: any) {
+  function confirmarRemocao(id: string | number, titulo: string) {
+    Alert.alert(
+      "Remover item",
+      `Deseja remover "${titulo}" do carrinho?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Remover", style: "destructive", onPress: () => removerDoCarrinho(id) },
+      ]
+    )
+  }
+
+  function renderizarItem({ item }: any) {
     return (
-      <View style={styles.cardItem}>
+      <View style={styles.card}>
         {item.image_url ? (
           <Image source={{ uri: item.image_url }} style={styles.imagem} />
         ) : (
-          <View style={styles.imagemVazia} />
+          <View style={styles.imagemVazia}>
+            <Ionicons name="cube-outline" size={28} color="#CCC" />
+          </View>
         )}
-        <View style={styles.infoItem}>
-          <Text style={styles.tituloItem}>{item.title}</Text>
-          <Text style={styles.precoItem}>R$ {item.price}</Text>
-          <Text style={styles.quantidadeItem}>Qtd: {item.quantidade}</Text>
+
+        <View style={styles.info}>
+          <Text style={styles.titulo} numberOfLines={2}>{item.title}</Text>
+          <Text style={styles.preco}>R$ {Number(item.price).toFixed(2)}</Text>
+
+          {/* Controles de quantidade */}
+          <View style={styles.quantidade}>
+            {item.quantidade > 1 && (
+              <TouchableOpacity
+                style={styles.btnQtd}
+                onPress={() => diminuirQuantidade(item.id)}
+              >
+                <Ionicons name="remove" size={16} color="#9810FA" />
+              </TouchableOpacity>
+            )}
+
+            <Text style={styles.qtdTexto}>{item.quantidade}</Text>
+
+            <TouchableOpacity
+              style={styles.btnQtd}
+              onPress={() => aumentarQuantidade(item.id)}
+            >
+              <Ionicons name="add" size={16} color="#9810FA" />
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {/* Botão remover */}
+        <TouchableOpacity
+          style={styles.btnRemover}
+          onPress={() => confirmarRemocao(item.id, item.title)}
+        >
+          <Ionicons name="trash-outline" size={20} color="#EF4444" />
+        </TouchableOpacity>
       </View>
-    );
+    )
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerTitulo}>Meu Carrinho </Text>
+      <Text style={styles.header}>Meu Carrinho</Text>
 
       {carrinho.length === 0 ? (
-        <Text style={styles.textoVazio}>Seu carrinho aguarda novos itens.</Text>
+        <View style={styles.vazio}>
+          <Ionicons name="cart-outline" size={64} color="#CCC" />
+          <Text style={styles.vazioTexto}>Seu carrinho está vazio.</Text>
+        </View>
       ) : (
         <>
           <FlatList
             data={carrinho}
             keyExtractor={(item) => item.id.toString()}
-            renderItem={renderizarItemCarrinho}
-            contentContainerStyle={{ paddingBottom: 20 }}
+            renderItem={renderizarItem}
+            contentContainerStyle={{ paddingBottom: 160 }}
+            showsVerticalScrollIndicator={false}
           />
+
+          {/* Rodapé fixo */}
           <View style={styles.rodape}>
-            <Text style={styles.textoTotal}>Total: R$ {valorTotal.toFixed(2)}</Text>
+            <View style={styles.rodapeInfo}>
+              <Text style={styles.rodapeLabel}>
+                {carrinho.length} {carrinho.length === 1 ? "item" : "itens"}
+              </Text>
+              <Text style={styles.rodapeTotal}>R$ {valorTotal.toFixed(2)}</Text>
+            </View>
             <TouchableOpacity style={styles.botaoFinalizar}>
-              <Text style={styles.textoBotaoFinalizar}>Finalizar Pedido</Text>
+              <Text style={styles.botaoFinalizarTexto}>Finalizar Pedido</Text>
             </TouchableOpacity>
           </View>
         </>
       )}
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: "#F5F5F5",
+    paddingHorizontal: 16,
   },
-  headerTitulo: {
-    fontSize: 24,
+
+  header: {
+    fontSize: 22,
     fontWeight: "bold",
-    marginBottom: 20,
-    marginTop: 30,
-    textAlign: "center",
+    marginTop: 55,
+    marginBottom: 16,
+    color: "#222",
   },
-  textoVazio: {
-    textAlign: "center",
-    marginTop: 50,
+
+  // Vazio
+  vazio: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  vazioTexto: {
     fontSize: 16,
     color: "#888",
   },
-  cardItem: {
+
+  // Card item
+  card: {
     backgroundColor: "white",
-    borderRadius: 8,
-    marginBottom: 15,
+    borderRadius: 12,
+    marginBottom: 12,
     flexDirection: "row",
-    padding: 10,
+    padding: 12,
+    alignItems: "center",
     elevation: 2,
   },
   imagem: {
-    width: 60,
-    height: 60,
+    width: 70,
+    height: 70,
     borderRadius: 8,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: "#EEE",
   },
   imagemVazia: {
-    width: 60,
-    height: 60,
+    width: 70,
+    height: 70,
     borderRadius: 8,
-    backgroundColor: "#D3D3D3",
-  },
-  infoItem: {
-    marginLeft: 15,
+    backgroundColor: "#EEE",
+    alignItems: "center",
     justifyContent: "center",
   },
-  tituloItem: {
-    fontSize: 16,
+  info: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  titulo: {
+    fontSize: 14,
     fontWeight: "bold",
+    color: "#222",
+    marginBottom: 4,
   },
-  precoItem: {
-    fontSize: 14,
-    color: "#2E8B57",
-    marginTop: 2,
+  preco: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#9810FA",
+    marginBottom: 8,
   },
-  quantidadeItem: {
-    fontSize: 14,
-    color: "gray",
-    marginTop: 2,
+
+  // Quantidade
+  quantidade: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
+  btnQtd: {
+    borderWidth: 1,
+    borderColor: "#9810FA",
+    borderRadius: 6,
+    padding: 4,
+  },
+  qtdTexto: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#222",
+    minWidth: 20,
+    textAlign: "center",
+  },
+
+  // Botão remover
+  btnRemover: {
+    padding: 8,
+    marginLeft: 8,
+  },
+
+  // Rodapé
   rodape: {
-    marginTop: 10,
-    paddingTop: 15,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "white",
+    padding: 16,
+    paddingBottom: 28,
+    elevation: 10,
     borderTopWidth: 1,
-    borderTopColor: "#D3D3D3",
+    borderTopColor: "#EEE",
+    gap: 12,
+  },
+  rodapeInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
   },
-  textoTotal: {
+  rodapeLabel: {
+    fontSize: 14,
+    color: "#888",
+  },
+  rodapeTotal: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 15,
+    color: "#222",
   },
   botaoFinalizar: {
-    backgroundColor: "black",
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 8,
-    width: "100%",
+    backgroundColor: "#9810FA",
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: "center",
   },
-  textoBotaoFinalizar: {
+  botaoFinalizarTexto: {
     color: "white",
     fontWeight: "bold",
     fontSize: 16,
   },
-});
+})

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Platform, TextInput } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
@@ -7,8 +7,8 @@ import { AuthContext } from '../../context/AuthContext';
 export default function Orcamento() {
     const {user} = useContext(AuthContext) as any;
     const [imagem, setImagem] = useState<string | null>(null);
-    const [tamanho, setTamanho] = useState('Pequeno');
-    const [qualidade, setQualidade] = useState('Padrão');
+    const [tamanho, setTamanho] = useState('');
+    const [material, setMaterial] = useState('');
 
     const escolherImagem = async () => {
         const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -91,10 +91,10 @@ export default function Orcamento() {
       const valorFinal = parseFloat(calcularPreco().replace(',', '.'));
 
       // adiciona os textos ao pacote
-      pacote.append('material', qualidade);
+      pacote.append('material', material || 'PLA');
       pacote.append('estimated_grams', String(gramas));
       pacote.append('calculated_price', String(valorFinal));
-      pacote.append('user_id', String(user?.id || 1)); // envia o ID do user (ou 1 como fallback)
+      pacote.append('user_id', String(user?.id || 1));
 
       //  dispara o pacote para API
       const urlDaAPI = 'http://192.168.5.235:3000/orcamentos'; 
@@ -112,8 +112,8 @@ export default function Orcamento() {
       
       // limpa 
       setImagem(null);
-      setTamanho('Pequeno');
-      setQualidade('Padrão');
+      setTamanho('');
+      setMaterial('');
 
     } catch (error) {
       console.error(error);
@@ -138,27 +138,25 @@ export default function Orcamento() {
         <Text style={styles.textoBotao}> Anexar Imagem</Text>
       </TouchableOpacity>
 
-      {/* 2. perguntas simples pros leigos */}
+      {/* Perguntas */}
       <View style={styles.secaoPerguntas}>
-        <Text style={styles.labelPergunta}>1. Qual o tamanho aproximado?</Text>
-        <View style={styles.linhaBotoes}>
-          <BotaoSelecao titulo="Pequeno" valorAtual={tamanho} setValor={setTamanho} />
-          <BotaoSelecao titulo="Médio" valorAtual={tamanho} setValor={setTamanho} />
-          <BotaoSelecao titulo="Grande" valorAtual={tamanho} setValor={setTamanho} />
-        </View>
+        <Text style={styles.labelPergunta}>1. Qual o tamanho aproximado? (tamanho em cm)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ex: 10x5x3"
+          placeholderTextColor="#999"
+          value={tamanho}
+          onChangeText={setTamanho}
+        />
 
-        <Text style={styles.labelPergunta}>2. Qual o nível de detalhe (qualidade)?</Text>
-        <View style={styles.linhaBotoes}>
-          <BotaoSelecao titulo="Rascunho" valorAtual={qualidade} setValor={setQualidade} />
-          <BotaoSelecao titulo="Padrão" valorAtual={qualidade} setValor={setQualidade} />
-          <BotaoSelecao titulo="Alta" valorAtual={qualidade} setValor={setQualidade} />
-        </View>
-      </View>
-
-        {/* resultado auto  */}
-      <View style={styles.cartaoPreco}>
-        <Text style={styles.textoPrecoLabel}>Valor Estimado:</Text>
-        <Text style={styles.textoPrecoValor}>R$ {calcularPreco()}</Text>
+        <Text style={styles.labelPergunta}>2. Qual o material que você quer usar?</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Material padrão"
+          placeholderTextColor="#999"
+          value={material}
+          onChangeText={setMaterial}
+        />
       </View>
 
       {/* botao de envio */}
@@ -242,36 +240,17 @@ const styles = StyleSheet.create({
     marginTop: 10 
 },
 
-  linhaBotoes: { 
-    flexDirection: 'row',
-     justifyContent: 'space-between', 
-     marginBottom: 10 
-    },
-  
-  botaoOpcao: { 
-    flex: 1, backgroundColor: '#E0E0E0', 
-    padding: 10, 
-    borderRadius: 8, 
-    alignItems: 'center', 
-    marginHorizontal: 4, 
-    borderWidth: 1, 
-    borderColor: 'transparent' 
-},
-
-  botaoOpcaoAtivo: { 
-    backgroundColor: '#E6F0FA', 
-    borderColor: '#007BFF' 
-  },
-
-  textoOpcao: { 
-    color: '#555', 
-    fontWeight: '500', 
-    fontSize: 13 
-  },
-
-  textoOpcaoAtivo: { 
-    color: '#007BFF', 
-    fontWeight: 'bold' 
+  input: {
+    width: '100%',
+    height: 48,
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 10,
   },
 
   cartaoPreco: { 

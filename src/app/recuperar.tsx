@@ -1,4 +1,4 @@
-import { View, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import { View, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -16,6 +16,14 @@ export default function Recuperar() {
 
   function handleNavigateRegister() {
     router.push("/register");
+  }
+
+  function enviarRecuperacao() {
+    if (!email.trim()) {
+      Alert.alert("Atenção", "Por favor, informe seu email.")
+      return
+    }
+    Alert.alert("Aviso", "Recuperação de senha sem lógica no momento devido a necessidade de outras prioridades no projeto!")
   }
 
   return (
@@ -45,6 +53,7 @@ export default function Recuperar() {
             border={2}
             borderColor="black"
             backgroundColor={"black"}
+            onPress={enviarRecuperacao}
           ></Botao>
           
         </View>

@@ -4,10 +4,10 @@ import {
   Inter_400Regular,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
-
+import { AuthProvider } from '../context/AuthContext';
 
 export default function RootLayout() {
-  
+
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_700Bold,
@@ -17,5 +17,9 @@ export default function RootLayout() {
     return null;
   }
 
-  return <Slot />;
+  return (
+    <AuthProvider>
+      <Slot />
+    </AuthProvider>
+  );
 }
