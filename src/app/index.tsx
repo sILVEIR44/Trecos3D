@@ -19,7 +19,7 @@ export default function Index() {
   }
 
   function handleNavigateHome() {
-    router.push("/home"); 
+    router.push("/home-guest")
   }
 
   return (

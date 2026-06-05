@@ -1,22 +1,24 @@
 import React, { useContext, useState, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { CartContext } from "../../context/CartContext";
 import { AuthContext } from "../../context/AuthContext";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 
 export default function Carrinho() {
-  const { carrinho } = useContext(CartContext);
-  const { token } = useContext(AuthContext);
+  const router = useRouter();
+  const { carrinho, removerDoCarrinho, aumentarQuantidade, diminuirQuantidade } = useContext(CartContext) as any;
+  const { token } = useContext(AuthContext) as any;
+  
   const [ listaOrcamentos, setListaOrcamentos ] = useState<any[]>([]);
   const [ carregandoOrcamentos, setCarregandoOrcamentos ] = useState(true);
 
+  // A vossa magia de buscar as peças 3D
   const buscarMeusOrcamentos = async () => {
     try {
       const urlAPI = `http://192.168.5.235:3000/orcamentos/1`; 
-
       const resposta = await fetch(urlAPI);
       const dados = await resposta.json();
-
       setListaOrcamentos(dados);
     } catch (error) {
       console.error("Erro ao buscar orçamentos:", error);
@@ -29,32 +31,61 @@ export default function Carrinho() {
     buscarMeusOrcamentos();
   }, []);
 
-  function renderizarItemCarrinho({ item }: any) {
+  // A armadura visual do vosso aliado para confirmar a remoção
+  function confirmarRemocao(id: string | number, titulo: string) {
+    Alert.alert(
+      "Remover item",
+      `Deseja remover "${titulo}" do carrinho?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Remover", style: "destructive", onPress: () => removerDoCarrinho(id) },
+      ]
+    );
+  }
+
+  // O cartão do item da loja (Feito pelo aliado)
+  function renderizarItem({ item }: any) {
     return (
-      <View style={styles.cardItem}>
+      <View style={styles.card}>
         {item.image_url ? (
           <Image source={{ uri: item.image_url }} style={styles.imagem} />
         ) : (
-          <View style={styles.imagemVazia} />
+          <View style={styles.imagemVazia}>
+            <Ionicons name="cube-outline" size={28} color="#CCC" />
+          </View>
         )}
-        <View style={styles.infoItem}>
-          <Text style={styles.tituloItem}>{item.title}</Text>
-          <Text style={styles.precoItem}>R$ {item.price}</Text>
-          <Text style={styles.quantidadeItem}>Qtd: {item.quantidade}</Text>
+
+        <View style={styles.info}>
+          <Text style={styles.titulo} numberOfLines={2}>{item.title}</Text>
+          <Text style={styles.preco}>R$ {Number(item.price).toFixed(2)}</Text>
+
+          <View style={styles.quantidade}>
+            {item.quantidade > 1 && (
+              <TouchableOpacity style={styles.btnQtd} onPress={() => diminuirQuantidade(item.id)}>
+                <Ionicons name="remove" size={16} color="#9810FA" />
+              </TouchableOpacity>
+            )}
+            <Text style={styles.qtdTexto}>{item.quantidade}</Text>
+            <TouchableOpacity style={styles.btnQtd} onPress={() => aumentarQuantidade(item.id)}>
+              <Ionicons name="add" size={16} color="#9810FA" />
+            </TouchableOpacity>
+          </View>
         </View>
+
+        <TouchableOpacity style={styles.btnRemover} onPress={() => confirmarRemocao(item.id, item.title)}>
+          <Ionicons name="trash-outline" size={20} color="#EF4444" />
+        </TouchableOpacity>
       </View>
     );
   }
 
-  // Soma o valor total do carrinho
-  const totalLoja = carrinho.reduce(( total, item ) => total + ( item.price * item.quantidade ), 0);
-  const totalOrcamentos = listaOrcamentos.reduce(( total, item ) => total + Number(item.calculated_price), 0);
+  // A matemática do Imperador: Soma Loja + Orçamentos 3D
+  const totalLoja = carrinho.reduce(( total: number, item: any ) => total + ( item.price * item.quantidade ), 0);
+  const totalOrcamentos = listaOrcamentos.reduce(( total: number, item: any ) => total + Number(item.calculated_price), 0);
   const valorTotal = totalLoja + totalOrcamentos;
 
+  // A vossa rota de finalização
   const finalizarPedido = async () => {
-    console.log(" O botão Finalizar Pedido foi clicado!");
-    console.log("Pulseira (Token) no Carrinho:", token);
-    // prevenir que o user envie um pedido fantasma
     if (carrinho.length === 0 && listaOrcamentos.length === 0) {
       alert("Atenção, o seu carrinho está vazio. Adicione itens antes de finalizar.");
       return;
@@ -65,15 +96,12 @@ export default function Carrinho() {
       return;
     }
 
-    //  contar as tropas (itens da loja + orçamentos)
-    const quantidadeProdutos = carrinho.reduce((acc, item) => acc + item.quantidade, 0);
-    const quantidadeOrcamentos = listaOrcamentos.length; // Cada orçamento conta como 1 peça
+    const quantidadeProdutos = carrinho.reduce((acc: number, item: any) => acc + item.quantidade, 0);
+    const quantidadeOrcamentos = listaOrcamentos.length; 
     const totalItens = quantidadeProdutos + quantidadeOrcamentos;
 
     try {
-      //  Use o seu IP atual
       const urlAPI = `http://192.168.5.235:3000/orders`; 
-
       const resposta = await fetch(urlAPI, {
         method: 'POST',
         headers: {
@@ -81,20 +109,17 @@ export default function Carrinho() {
           'Authorization': `Bearer ${token}` 
         },
         body: JSON.stringify({
-          quote_id: null, // como podemos ter x produtos, deixamos null por agora
+          quote_id: null, 
           total_value: valorTotal,
           item_count: totalItens
         })
       });
 
       const dados = await resposta.json();
-      console.log("Resposta do Castelo (API):", dados);
-      console.log("Status da Resposta:", resposta.status);
 
       if (resposta.ok) {
         alert("Sucesso! O seu pedido foi enviado! \n\n" + dados.message);
         router.replace("/home");
-        
       } else {
         alert("Erro, Algo deu errado ao finalizar." + dados.error);
       }
@@ -106,44 +131,50 @@ export default function Carrinho() {
   };
 
   return (
-    <View style={ styles.container }>
-      <Text style={ styles.headerTitulo }>Meu Carrinho</Text>
-     {/* --- SEÇÃO 1: ITENS DO CARRINHO --- */}
-      { carrinho.length === 0 ? (
-        <Text style={ styles.textoVazio }>Nenhum item da loja adicionado.</Text>
+    <View style={styles.container}>
+      <Text style={styles.header}>Meu Carrinho</Text>
+
+      {/* --- SEÇÃO 1: ITENS DA LOJA --- */}
+      {carrinho.length === 0 ? (
+        <View style={styles.vazio}>
+          <Ionicons name="cart-outline" size={40} color="#CCC" />
+          <Text style={styles.vazioTexto}>Nenhum item da loja adicionado.</Text>
+        </View>
       ) : (
         <FlatList
-          data={ carrinho }
+          data={carrinho}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={ renderizarItemCarrinho }
-          style={{ flexGrow: 0, maxHeight: 220 }} 
+          renderItem={renderizarItem}
+          style={{ maxHeight: 250 }} 
+          showsVerticalScrollIndicator={false}
         />
       )}
 
-      {/* --- SEÇÃO 2: ORÇAMENTOS 3D --- */}
-      <Text style={ styles.tituloSecao }>Meus Orçamentos (Peças 3D)</Text>
+      {/* --- SEÇÃO 2: ORÇAMENTOS 3D  --- */}
+      <Text style={styles.tituloSecao}>Meus Orçamentos (Peças 3D)</Text>
 
       { carregandoOrcamentos ? (
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#9810FA" />
       ) : listaOrcamentos.length === 0 ? (
-        <Text style={ styles.textoVazio }>Nenhum orçamento pendente.</Text>
+        <Text style={styles.vazioTextoLista}>Nenhum orçamento pendente.</Text>
       ) : (
         <FlatList
-          data={ listaOrcamentos }
+          data={listaOrcamentos}
           keyExtractor={(item) => String(item.id)}
           style={{ flex: 1 }} 
+          contentContainerStyle={{ paddingBottom: 100 }} // Espaço para não bater no rodapé flutuante
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <View style={ styles.cartaoOrcamento }>
+            <View style={styles.cartaoOrcamento}>
               <Image source={{ uri: item.file_url }} style={styles.miniatura} />
-
-              <View style={ styles.detalhesCartao }>
-                <Text style={ styles.textoForte }>Material: {item.material}</Text>
-                <Text>Peso: { item.estimated_grams }g</Text>
-                <Text style={ styles.textoPreco }>Estimativa: R$ {item.calculated_price}</Text>
+              <View style={styles.detalhesCartao}>
+                <Text style={styles.textoForte}>Material: {item.material}</Text>
+                <Text style={styles.textoPeso}>Peso: {item.estimated_grams}g</Text>
+                <Text style={styles.textoPrecoOrcamento}>Estimativa: R$ {item.calculated_price}</Text>
                 
-                <View style={[ styles.insigniaStatus, item.status === 'pending' ? styles.statusPendente : styles.statusAprovado]}>
-                  <Text style={ styles.textoStatus }>
-                    { item.status === 'pending' ? ' Em Avaliação' : ' Aprovado'}
+                <View style={[styles.insigniaStatus, item.status === 'pending' ? styles.statusPendente : styles.statusAprovado]}>
+                  <Text style={styles.textoStatus}>
+                    {item.status === 'pending' ? 'Em Avaliação' : 'Aprovado'}
                   </Text>
                 </View>
               </View>
@@ -152,14 +183,16 @@ export default function Carrinho() {
         />
       )}
 
-      {/* --- SEÇÃO 3: RODAPÉ DE FINALIZAR PEDIDO --- */}
-      <View style={ styles.rodape }>
-        <Text style={ styles.textoTotal }>Total: R$ { valorTotal.toFixed(2) }</Text>
-        <TouchableOpacity style={ styles.botaoFinalizar } onPress={ finalizarPedido }>
-          <Text style={ styles.textoBotaoFinalizar }>Finalizar Pedido</Text>
+      {/* --- SEÇÃO 3: rodape --- */}
+      <View style={styles.rodape}>
+        <View style={styles.rodapeInfo}>
+          <Text style={styles.rodapeLabel}>Valor Total Final</Text>
+          <Text style={styles.rodapeTotal}>R$ {valorTotal.toFixed(2)}</Text>
+        </View>
+        <TouchableOpacity style={styles.botaoFinalizar} onPress={finalizarPedido}>
+          <Text style={styles.botaoFinalizarTexto}>Finalizar Pedido</Text>
         </TouchableOpacity>
       </View>
-
     </View>
   );
 }
@@ -167,91 +200,139 @@ export default function Carrinho() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: "#F5F5F5",
+    paddingHorizontal: 16,
   },
-  headerTitulo: {
-    fontSize: 24,
+  header: {
+    fontSize: 22,
     fontWeight: "bold",
-    marginBottom: 20,
-    marginTop: 30,
-    textAlign: "center",
+    marginTop: 55,
+    marginBottom: 16,
+    color: "#222",
   },
-  textoVazio: {
-    textAlign: "center",
-    marginTop: 50,
+  vazio: {
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "white",
+    borderRadius: 12,
+  },
+  vazioTexto: {
     fontSize: 16,
     color: "#888",
     fontStyle: 'italic',
   },
-  cardItem: {
+  vazioTextoLista: {
+    fontSize: 14,
+    color: "#888",
+    fontStyle: 'italic',
+    textAlign: "center",
+    marginTop: 10,
+  },
+  card: {
     backgroundColor: "white",
-    borderRadius: 8,
-    marginBottom: 15,
+    borderRadius: 12,
+    marginBottom: 12,
     flexDirection: "row",
-    padding: 10,
+    padding: 12,
+    alignItems: "center",
     elevation: 2,
   },
   imagem: {
-    width: 60,
-    height: 60,
+    width: 70,
+    height: 70,
     borderRadius: 8,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: "#EEE",
   },
   imagemVazia: {
-    width: 60,
-    height: 60,
+    width: 70,
+    height: 70,
     borderRadius: 8,
-    backgroundColor: "#D3D3D3",
-  },
-  infoItem: {
-    marginLeft: 15,
+    backgroundColor: "#EEE",
+    alignItems: "center",
     justifyContent: "center",
   },
-  tituloItem: {
-    fontSize: 16,
+  info: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  titulo: {
+    fontSize: 14,
     fontWeight: "bold",
+    color: "#222",
+    marginBottom: 4,
   },
-  precoItem: {
-    fontSize: 14,
-    color: "#2E8B57",
-    marginTop: 2,
+  preco: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#9810FA",
+    marginBottom: 8,
   },
-  quantidadeItem: {
-    fontSize: 14,
-    color: "gray",
-    marginTop: 2,
+  quantidade: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  btnQtd: {
+    borderWidth: 1,
+    borderColor: "#9810FA",
+    borderRadius: 6,
+    padding: 4,
+  },
+  qtdTexto: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#222",
+    minWidth: 20,
+    textAlign: "center",
+  },
+  btnRemover: {
+    padding: 8,
+    marginLeft: 8,
   },
   rodape: {
-    marginTop: 10,
-    paddingTop: 15,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "white",
+    padding: 16,
+    paddingBottom: 28,
+    elevation: 10,
     borderTopWidth: 1,
-    borderTopColor: "#D3D3D3",
+    borderTopColor: "#EEE",
+    gap: 12,
+  },
+  rodapeInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
   },
-  textoTotal: {
+  rodapeLabel: {
+    fontSize: 14,
+    color: "#888",
+  },
+  rodapeTotal: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 15,
+    color: "#222",
   },
   botaoFinalizar: {
-    backgroundColor: "black",
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 8,
-    width: "100%",
+    backgroundColor: "#9810FA",
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: "center",
   },
-  textoBotaoFinalizar: {
+  botaoFinalizarTexto: {
     color: "white",
     fontWeight: "bold",
     fontSize: 16,
   },
-  /* --- NOVOS ESTILOS DOS ORÇAMENTOS ADICIONADOS AQUI --- */
   tituloSecao: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 10,
+    marginTop: 20,
     marginBottom: 10,
     color: '#333',
   },
@@ -277,8 +358,14 @@ const styles = StyleSheet.create({
   textoForte: {
     fontWeight: 'bold',
     fontSize: 15,
+    color: '#333',
   },
-  textoPreco: {
+  textoPeso: {
+    fontSize: 13,
+    color: '#666',
+    marginVertical: 2,
+  },
+  textoPrecoOrcamento: {
     color: '#2E8B57',
     fontWeight: 'bold',
     marginVertical: 2,

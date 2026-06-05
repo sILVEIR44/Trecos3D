@@ -1,19 +1,30 @@
-import { Tabs } from "expo-router";
+import { useContext, useEffect } from "react";
+import { Tabs, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { CartProvider } from "../../context/CartContext";
 import { AuthContext } from "../../context/AuthContext";
-import { useContext } from "react";
 
 export default function AppLayout() {
-  const { user }= useContext(AuthContext) as any;
+  const { user, isLoading } = useContext(AuthContext);
+  const router = useRouter();
+
+  useEffect(() => {
+    // Se terminou de carregar e não tem usuário logado, manda pro login
+    if (!isLoading && !user) {
+      router.replace("/login");
+    }
+  }, [user, isLoading]);
+
+  // Enquanto verifica o login, não renderiza nada
+  if (isLoading || !user) return null;
 
   return (
       <CartProvider>
-        <Tabs 
+        <Tabs
           screenOptions={{
-            headerShown: false, 
-            tabBarActiveTintColor: "black", 
-            tabBarInactiveTintColor: "gray", 
+            headerShown: false,
+            tabBarActiveTintColor: "black",
+            tabBarInactiveTintColor: "gray",
             tabBarStyle: {
               backgroundColor: "#ffffff",
               borderTopWidth: 1,
@@ -21,7 +32,7 @@ export default function AppLayout() {
               height: 65,
               paddingBottom: 10,
               paddingTop: 5,
-            }
+            },
           }}
         >
           <Tabs.Screen
@@ -55,16 +66,26 @@ export default function AppLayout() {
             }}
             />
 
-          <Tabs.Screen
-            name="perfil"
-            options={{
-              title: "Perfil",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="person-outline" size={size} color={color} />
-              ),
-            }}
-          />
-        </Tabs>
-      </CartProvider>
+        <Tabs.Screen
+          name="perfil"
+          options={{
+            title: "Perfil",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="person-outline" size={size} color={color} />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
+          name="orcamento"
+          options={{
+            title: "Orçamento",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="bulb-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      </Tabs>
+    </CartProvider>
   );
 }

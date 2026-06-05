@@ -4,11 +4,10 @@ import {
   Inter_400Regular,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import { AuthProvider } from "@/context/AuthContext";
-import { Stack } from "expo-router";
-
+import { AuthProvider } from '../context/AuthContext';
 
 export default function RootLayout() {
+
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_700Bold,
@@ -20,7 +19,7 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }}/>
-   </AuthProvider>
-   );
+      <Slot />
+    </AuthProvider>
+  );
 }

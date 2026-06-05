@@ -1,54 +1,55 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Platform } from 'react-native';
+import React, { useState, useContext } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Platform, TextInput } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 
 export default function Orcamento() {
-    const {user} = useContext(AuthContext) as any;
-    const [imagem, setImagem] = useState<string | null>(null);
-    const [tamanho, setTamanho] = useState('Pequeno');
-    const [qualidade, setQualidade] = useState('Padrão');
+  const { user } = useContext(AuthContext) as any;
+  const [imagem, setImagem] = useState<string | null>(null);
+  const [tamanho, setTamanho] = useState('');
+  const [material, setMaterial] = useState('');  
+  const [qualidade, setQualidade] = useState('Padrão');
 
-    const escolherImagem = async () => {
-        const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (permissao.status !== 'granted') {
-        Alert.alert('Atenção', 'Precisamos de permissão para acessar as suas fotos!');
-        return;
-        }
+  const escolherImagem = async () => {
+    const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissao.status !== 'granted') {
+      Alert.alert('Atenção', 'Precisamos de permissão para acessar as suas fotos!');
+      return;
+    }
 
-        const resultado = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-        });
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
 
-        if (!resultado.canceled) {
-        setImagem(resultado.assets[0].uri);
-        }
-    };
+    if (!resultado.canceled) {
+      setImagem(resultado.assets[0].uri);
+    }
+  };
 
-    const tirarFoto = async () => {
-      const permissao = await ImagePicker.requestCameraPermissionsAsync();
+  const tirarFoto = async () => {
+    const permissao = await ImagePicker.requestCameraPermissionsAsync();
 
-      if (permissao.status !== 'granted') {
-        Alert.alert('Acesso Negado', 'Precisamos de permissão para acessar a câmera!');
-        return;
-      }
+    if (permissao.status !== 'granted') {
+      Alert.alert('Acesso Negado', 'Precisamos de permissão para acessar a câmera!');
+      return;
+    }
 
-      // Abre a camera do dispo
-      const resultado = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images, //so fotos
-        allowsEditing: true, //deixa o user cortar a foto depois de tirar
-        aspect: [4, 3], // proporção da foto
-        quality: 0.8, // qualidade boa
-      });
-      //senao cancelou e tirou foto, salva o estado
-      if (!resultado.canceled) { 
-        setImagem(resultado.assets[0].uri);
-      }
-    };
+    // Abre a camera do dispo
+    const resultado = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, //so fotos
+      allowsEditing: true, //deixa o user cortar a foto depois de tirar
+      aspect: [4, 3], // proporção da foto
+      quality: 0.8, // qualidade boa
+    });
+    
+    //senao cancelou e tirou foto, salva o estado
+    if (!resultado.canceled) { 
+      setImagem(resultado.assets[0].uri);
+    }
+  };
 
   // Regra de precificacao simples baseada nas escolhas do user
   const calcularPreco = () => {
@@ -69,17 +70,6 @@ export default function Orcamento() {
     return valorFinal.toFixed(2).replace('.', ','); // Formata para real
   };
 
-  const BotaoSelecao = ({ titulo, valorAtual, setValor }: any) => (
-    <TouchableOpacity 
-      style={[styles.botaoOpcao, valorAtual === titulo && styles.botaoOpcaoAtivo]} 
-      onPress={() => setValor(titulo)}
-    >
-      <Text style={[styles.textoOpcao, valorAtual === titulo && styles.textoOpcaoAtivo]}>
-        {titulo}
-      </Text>
-    </TouchableOpacity>
-  );
-
   const enviarOrcamento = async () => {
     if (!imagem) {
       Alert.alert('Atenção', 'Precisamos de uma imagem da peça!');
@@ -87,23 +77,23 @@ export default function Orcamento() {
     }
 
     try {
-        const pacote = new FormData();
-        if (Platform.OS === 'web') {
-            //pra rodar na web, expo go ta falhando toda hora...
-            const respostaImg = await fetch(imagem);
-            const blob = await respostaImg.blob();
-            pacote.append('file', blob, 'imagem_orcamento.jpg'); 
-        }   else {
-            // pra rodar no celular, expo go funciona normal
-            const nomeArquivo = imagem.split('/').pop() || 'imagem.jpg';
-            const tipo = `image/${nomeArquivo.split('.').pop()}`;
-            // @ts-ignore - O TypeScript não gosta deste formato, mas o React Native precisa dele
-            pacote.append('file', {
-            uri: imagem,
-            name: nomeArquivo,
-            type: tipo,
-            });
-        }
+      const pacote = new FormData();
+      if (Platform.OS === 'web') {
+        //pra rodar na web, expo go ta falhando toda hora...
+        const respostaImg = await fetch(imagem);
+        const blob = await respostaImg.blob();
+        pacote.append('file', blob, 'imagem_orcamento.jpg'); 
+      } else {
+        // pra rodar no celular, expo go funciona normal
+        const nomeArquivo = imagem.split('/').pop() || 'imagem.jpg';
+        const tipo = `image/${nomeArquivo.split('.').pop()}`;
+        // @ts-ignore - O TypeScript não gosta deste formato, mas o React Native precisa dele
+        pacote.append('file', {
+          uri: imagem,
+          name: nomeArquivo,
+          type: tipo,
+        });
+      }
         
       let gramas = 50;
       if (tamanho === 'Médio') gramas = 150;
@@ -112,12 +102,12 @@ export default function Orcamento() {
       const valorFinal = parseFloat(calcularPreco().replace(',', '.'));
 
       // adiciona os textos ao pacote
-      pacote.append('material', qualidade);
+      pacote.append('material', material || 'PLA');
       pacote.append('estimated_grams', String(gramas));
       pacote.append('calculated_price', String(valorFinal));
-      pacote.append('user_id', String(user?.id || 1)); // envia o ID do user (ou 1 como fallback)
+      pacote.append('user_id', String(user?.id || 1));
 
-      //  dispara o pacote para API
+      // dispara o pacote para API
       const urlDaAPI = 'http://192.168.5.235:3000/orcamentos'; 
 
       const resposta = await fetch(urlDaAPI, {
@@ -133,8 +123,8 @@ export default function Orcamento() {
       
       // limpa 
       setImagem(null);
-      setTamanho('Pequeno');
-      setQualidade('Padrão');
+      setTamanho('');
+      setMaterial('');
 
     } catch (error) {
       console.error(error);
@@ -159,31 +149,29 @@ export default function Orcamento() {
         <Text style={styles.textoBotao}> Anexar Imagem</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.botaoCamera} onPress={tirarFoto}>
+      {/* <TouchableOpacity style={styles.botaoCamera} onPress={tirarFoto}>
         <Text style={styles.textoBotao}> Tirar Foto Agora</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
       
-      {/* 2. perguntas simples pros leigos */}
+      {/* Perguntas */}
       <View style={styles.secaoPerguntas}>
-        <Text style={styles.labelPergunta}>1. Qual o tamanho aproximado?</Text>
-        <View style={styles.linhaBotoes}>
-          <BotaoSelecao titulo="Pequeno" valorAtual={tamanho} setValor={setTamanho} />
-          <BotaoSelecao titulo="Médio" valorAtual={tamanho} setValor={setTamanho} />
-          <BotaoSelecao titulo="Grande" valorAtual={tamanho} setValor={setTamanho} />
-        </View>
+        <Text style={styles.labelPergunta}>1. Qual o tamanho aproximado? (tamanho em cm)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ex: 10x5x3"
+          placeholderTextColor="#999"
+          value={tamanho}
+          onChangeText={setTamanho}
+        />
 
-        <Text style={styles.labelPergunta}>2. Qual o nível de detalhe (qualidade)?</Text>
-        <View style={styles.linhaBotoes}>
-          <BotaoSelecao titulo="Rascunho" valorAtual={qualidade} setValor={setQualidade} />
-          <BotaoSelecao titulo="Padrão" valorAtual={qualidade} setValor={setQualidade} />
-          <BotaoSelecao titulo="Alta" valorAtual={qualidade} setValor={setQualidade} />
-        </View>
-      </View>
-
-        {/* resultado auto  */}
-      <View style={styles.cartaoPreco}>
-        <Text style={styles.textoPrecoLabel}>Valor Estimado:</Text>
-        <Text style={styles.textoPrecoValor}>R$ {calcularPreco()}</Text>
+        <Text style={styles.labelPergunta}>2. Qual o material que você quer usar?</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Material padrão"
+          placeholderTextColor="#999"
+          value={material}
+          onChangeText={setMaterial}
+        />
       </View>
 
       {/* botao de envio */}
@@ -199,29 +187,25 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: '#F5F5F5'
- },
-
+  },
   content: { 
     padding: 20, 
     alignItems: 'center', 
     paddingBottom: 40 
-},
-
+  },
   titulo: { 
     fontSize: 24, 
     fontWeight: 'bold', 
     color: '#333', 
     marginBottom: 5, 
     marginTop: 10 
-},
-
+  },
   subtitulo: { 
     fontSize: 14,
-     color: '#666',
-      textAlign: 'center',
-       marginBottom: 25 
-    },
-  
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 25 
+  },
   areaImagem: { 
     width: '100%', 
     height: 180, 
@@ -234,110 +218,56 @@ const styles = StyleSheet.create({
     borderWidth: 1, 
     borderColor: '#CCC', 
     borderStyle: 'dashed' 
-},
-
+  },
   imagemEscolhida: { 
     width: '100%', 
     height: '100%' 
-},
-
+  },
   textoSemImagem: { 
     color: '#999' 
-},
-
+  },
   botaoCamera: { 
     backgroundColor: '#555', 
     padding: 12, 
     borderRadius: 8, 
     width: '100%', 
     alignItems: 'center', 
-    marginBottom: 30 
-},
-  
+    marginBottom: 10 // Reduzi um pouco o espaçamento para caberem os dois botões elegantemente
+  },
   secaoPerguntas: {
-     width: '100%', 
-     marginBottom: 20 
-    },
-
+    width: '100%', 
+    marginBottom: 20,
+    marginTop: 10
+  },
   labelPergunta: { 
     fontSize: 16, 
     fontWeight: 'bold', 
     color: '#444', 
     marginBottom: 10, 
     marginTop: 10 
-},
-
-  linhaBotoes: { 
-    flexDirection: 'row',
-     justifyContent: 'space-between', 
-     marginBottom: 10 
-    },
-  
-  botaoOpcao: { 
-    flex: 1, backgroundColor: '#E0E0E0', 
-    padding: 10, 
-    borderRadius: 8, 
-    alignItems: 'center', 
-    marginHorizontal: 4, 
-    borderWidth: 1, 
-    borderColor: 'transparent' 
-},
-
-  botaoOpcaoAtivo: { 
-    backgroundColor: '#E6F0FA', 
-    borderColor: '#007BFF' 
   },
-
-  textoOpcao: { 
-    color: '#555', 
-    fontWeight: '500', 
-    fontSize: 13 
+  input: {
+    width: '100%',
+    height: 48,
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 10,
   },
-
-  textoOpcaoAtivo: { 
-    color: '#007BFF', 
-    fontWeight: 'bold' 
-  },
-
-  cartaoPreco: { 
-    backgroundColor: '#FFF', 
-    width: '100%', 
-    padding: 20, 
-    borderRadius: 12, 
-    alignItems: 'center', 
-    shadowColor: "#000", 
-    shadowOffset: { 
-        width: 0, 
-        height: 2 
-    }, 
-    shadowOpacity: 0.1, 
-    shadowRadius: 4, 
-    elevation: 3, 
-    marginBottom: 30, 
-    borderWidth: 1, 
-    borderColor: '#EEE' 
-},
-
-  textoPrecoLabel: { 
-    fontSize: 16, 
-    color: '#666', 
-    marginBottom: 5 },
-
-  textoPrecoValor: { 
-    fontSize: 32, 
-    fontWeight: 'bold', 
-    color: '#28A745' },
-
   botaoEnviar: { 
     backgroundColor: '#000', 
     padding: 18,
-     borderRadius: 10,
-     width: '100%',
-     alignItems: 'center' 
+    borderRadius: 10,
+    width: '100%',
+    alignItems: 'center' 
   },
-
   textoBotao: { 
     color: '#FFF', 
     fontWeight: 'bold',
-     fontSize: 16 },
+    fontSize: 16 
+  },
 });
