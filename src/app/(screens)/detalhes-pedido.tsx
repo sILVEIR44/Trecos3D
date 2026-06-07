@@ -9,6 +9,13 @@ import { AuthContext } from "../../context/AuthContext"
 import { useTheme } from "../../context/ThemeContext"
 import api from "../../services/authService"
 
+type OrderItem = {
+  id: number
+  product_title: string
+  quantity: number
+  unit_price: number
+}
+
 type Pedido = {
   id: number
   user_id: number
@@ -17,6 +24,7 @@ type Pedido = {
   item_count: number
   status: string
   created_at: string
+  items: OrderItem[]
 }
 
 const STATUS_INFO: Record<string, { texto: string; cor: string; icone: keyof typeof Ionicons.glyphMap }> = {
@@ -53,8 +61,7 @@ export default function DetalhesPedido() {
         headers: { Authorization: `Bearer ${token}` },
       })
       setPedido(response.data)
-    } catch (error) {
-      console.log("Erro ao buscar pedido:", error)
+    } catch {
       setErro(true)
     } finally {
       setCarregando(false)
@@ -166,6 +173,31 @@ export default function DetalhesPedido() {
         </View>
       )}
 
+      {/* Lista de itens */}
+      {pedido.items && pedido.items.length > 0 && (
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <Text style={[styles.secaoTitulo, { color: colors.text }]}>Itens do Pedido</Text>
+          {pedido.items.map((item, idx) => (
+            <View key={item.id}>
+              {idx > 0 && <View style={[styles.divisor, { backgroundColor: colors.divider }]} />}
+              <View style={styles.itemLinha}>
+                <View style={styles.itemEsquerda}>
+                  <Text style={[styles.itemNome, { color: colors.text }]} numberOfLines={2}>
+                    {item.product_title}
+                  </Text>
+                  <Text style={[styles.itemQtd, { color: colors.subtext }]}>
+                    {item.quantity}x · R$ {Number(item.unit_price).toFixed(2)} cada
+                  </Text>
+                </View>
+                <Text style={[styles.itemTotal, { color: colors.text }]}>
+                  R$ {(item.quantity * Number(item.unit_price)).toFixed(2)}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
       {/* Resumo financeiro */}
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <Text style={[styles.secaoTitulo, { color: colors.text }]}>Resumo</Text>
@@ -240,6 +272,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#FEE2E2",
   },
   canceladoTexto: { color: "#EF4444", fontWeight: "bold", fontSize: 15 },
+
+  itemLinha: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, gap: 8 },
+  itemEsquerda: { flex: 1 },
+  itemNome: { fontSize: 14, fontWeight: "bold", marginBottom: 2 },
+  itemQtd: { fontSize: 12 },
+  itemTotal: { fontSize: 14, fontWeight: "bold" },
 
   resumoLinha: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 4 },
   resumoLabel: { fontSize: 14 },

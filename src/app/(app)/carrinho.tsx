@@ -17,6 +17,8 @@ export default function Carrinho() {
 
   const [listaOrcamentos, setListaOrcamentos] = useState<any[]>([]);
   const [carregandoOrcamentos, setCarregandoOrcamentos] = useState(true);
+  const [sucesso, setSucesso] = useState<string | null>(null);
+  const [finalizando, setFinalizando] = useState(false);
 
   const buscarMeusOrcamentos = async () => {
     try {
@@ -25,7 +27,7 @@ export default function Carrinho() {
       const dados = await resposta.json();
       setListaOrcamentos(dados);
     } catch (error) {
-      console.error("Erro ao buscar orçamentos:", error);
+      // silencioso
     } finally {
       setCarregandoOrcamentos(false);
     }
@@ -87,16 +89,22 @@ export default function Carrinho() {
 
   const finalizarPedido = async () => {
     if (carrinho.length === 0 && listaOrcamentos.length === 0) {
-      alert("Atenção, o seu carrinho está vazio. Adicione itens antes de finalizar.");
+      Alert.alert("Carrinho vazio", "Adicione itens antes de finalizar.");
       return;
     }
     if (!token) {
-      alert("Acesso Negado: Faça login novamente.");
+      Alert.alert("Sessão expirada", "Faça login novamente.");
       return;
     }
 
+    setFinalizando(true);
     const quantidadeProdutos = carrinho.reduce((acc: number, item: any) => acc + item.quantidade, 0);
     const totalItens = quantidadeProdutos + listaOrcamentos.length;
+    const itensDoPedido = carrinho.map((item: any) => ({
+      product_title: item.title,
+      quantity: item.quantidade,
+      unit_price: Number(item.price),
+    }));
 
     try {
       const resposta = await fetch("http://192.168.5.235:3000/orders", {
@@ -105,26 +113,44 @@ export default function Carrinho() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ quote_id: null, total_value: valorTotal, item_count: totalItens }),
+        body: JSON.stringify({
+          quote_id: null,
+          total_value: valorTotal,
+          item_count: totalItens,
+          items: itensDoPedido,
+        }),
       });
 
       const dados = await resposta.json();
 
       if (resposta.ok) {
         limparCarrinho();
-        alert("Sucesso! O seu pedido foi enviado!\n\n" + dados.message);
-        router.replace("/meus-pedidos");
+        setSucesso(dados.message || "Pedido enviado com sucesso!");
+        setTimeout(() => {
+          setSucesso(null);
+          router.replace("/meus-pedidos");
+        }, 2200);
       } else {
-        alert("Erro: " + dados.error);
+        Alert.alert("Erro ao finalizar", dados.error || "Tente novamente.");
       }
-    } catch (error) {
-      console.error("Erro ao finalizar pedido:", error);
-      alert("Erro de Comunicação. Tente novamente mais tarde.");
+    } catch {
+      Alert.alert("Erro de conexão", "Verifique a sua ligação e tente novamente.");
+    } finally {
+      setFinalizando(false);
     }
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+
+      {/* Banner de sucesso */}
+      {sucesso && (
+        <View style={styles.bannerSucesso}>
+          <Ionicons name="checkmark-circle" size={22} color="white" />
+          <Text style={styles.bannerSucessoTexto}>{sucesso}</Text>
+        </View>
+      )}
+
       <Text style={[styles.header, { color: colors.text }]}>Meu Carrinho</Text>
 
       {/* Itens da loja */}
@@ -159,7 +185,13 @@ export default function Carrinho() {
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <View style={[styles.cartaoOrcamento, { backgroundColor: colors.card }]}>
-              <Image source={{ uri: item.file_url }} style={styles.miniatura} />
+              {item.file_url ? (
+                <Image source={{ uri: item.file_url }} style={styles.miniatura} />
+              ) : (
+                <View style={[styles.miniatura, styles.miniaturaVazia, { backgroundColor: colors.border }]}>
+                  <Ionicons name="cube-outline" size={22} color="#CCC" />
+                </View>
+              )}
               <View style={styles.detalhesCartao}>
                 <Text style={[styles.textoForte, { color: colors.text }]}>Material: {item.material}</Text>
                 <Text style={[styles.textoPeso, { color: colors.subtext }]}>Peso: {item.estimated_grams}g</Text>
@@ -184,8 +216,15 @@ export default function Carrinho() {
           <Text style={[styles.rodapeLabel, { color: colors.subtext }]}>Valor Total Final</Text>
           <Text style={[styles.rodapeTotal, { color: colors.text }]}>R$ {valorTotal.toFixed(2)}</Text>
         </View>
-        <TouchableOpacity style={styles.botaoFinalizar} onPress={finalizarPedido}>
-          <Text style={styles.botaoFinalizarTexto}>Finalizar Pedido</Text>
+        <TouchableOpacity
+          style={[styles.botaoFinalizar, finalizando && { opacity: 0.6 }]}
+          onPress={finalizarPedido}
+          disabled={finalizando}
+        >
+          {finalizando
+            ? <ActivityIndicator color="white" size="small" />
+            : <Text style={styles.botaoFinalizarTexto}>Finalizar Pedido</Text>
+          }
         </TouchableOpacity>
       </View>
     </View>
@@ -195,9 +234,15 @@ export default function Carrinho() {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 16 },
   header: { fontSize: 22, fontWeight: "bold", marginTop: 55, marginBottom: 16 },
-  vazio: {
-    padding: 20, alignItems: "center", justifyContent: "center", gap: 10, borderRadius: 12,
+
+  bannerSucesso: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#10B981", borderRadius: 12,
+    paddingVertical: 14, paddingHorizontal: 16, marginTop: 55, marginBottom: -30,
   },
+  bannerSucessoTexto: { color: "white", fontWeight: "bold", fontSize: 14, flex: 1 },
+
+  vazio: { padding: 20, alignItems: "center", justifyContent: "center", gap: 10, borderRadius: 12 },
   vazioTexto: { fontSize: 16, fontStyle: "italic" },
   vazioTextoLista: { fontSize: 14, fontStyle: "italic", textAlign: "center", marginTop: 10 },
 
@@ -216,10 +261,9 @@ const styles = StyleSheet.create({
   btnRemover: { padding: 8, marginLeft: 8 },
 
   tituloSecao: { fontSize: 18, fontWeight: "bold", marginTop: 20, marginBottom: 10 },
-  cartaoOrcamento: {
-    flexDirection: "row", padding: 10, borderRadius: 8, marginBottom: 10, elevation: 2,
-  },
+  cartaoOrcamento: { flexDirection: "row", padding: 10, borderRadius: 8, marginBottom: 10, elevation: 2 },
   miniatura: { width: 60, height: 60, borderRadius: 8, marginRight: 10, backgroundColor: "#EEE" },
+  miniaturaVazia: { alignItems: "center", justifyContent: "center" },
   detalhesCartao: { flex: 1, justifyContent: "center" },
   textoForte: { fontWeight: "bold", fontSize: 15 },
   textoPeso: { fontSize: 13, marginVertical: 2 },
@@ -231,8 +275,7 @@ const styles = StyleSheet.create({
 
   rodape: {
     position: "absolute", bottom: 0, left: 0, right: 0,
-    padding: 16, paddingBottom: 28, elevation: 10,
-    borderTopWidth: 1, gap: 12,
+    padding: 16, paddingBottom: 28, elevation: 10, borderTopWidth: 1, gap: 12,
   },
   rodapeInfo: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   rodapeLabel: { fontSize: 14 },

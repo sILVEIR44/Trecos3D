@@ -6,6 +6,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -24,6 +25,7 @@ function calcularPreco(material: string, gramas: number, horas: number) {
 
 export default function NovoOrcamento() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user } = useContext(AuthContext) as any;
   const { colors, isDark } = useTheme();
 
@@ -82,15 +84,18 @@ export default function NovoOrcamento() {
       const preco = calcularPreco(materialSelecionado, tamanhoSelecionado.gramas, tamanhoSelecionado.horas);
       const pacote = new FormData();
 
-      if (Platform.OS === "web") {
-        const resp = await fetch(imagem);
-        const blob = await resp.blob();
-        pacote.append("file", blob, "orcamento.jpg");
-      } else {
-        const nome = imagem.split("/").pop() ?? "orcamento.jpg";
-        const ext = nome.split(".").pop();
-        // @ts-ignore
-        pacote.append("file", { uri: imagem, name: nome, type: `image/${ext}` });
+      // Foto é opcional — só anexa se o utilizador seleccionou uma
+      if (imagem) {
+        if (Platform.OS === "web") {
+          const resp = await fetch(imagem);
+          const blob = await resp.blob();
+          pacote.append("file", blob, "orcamento.jpg");
+        } else {
+          const nome = imagem.split("/").pop() ?? "orcamento.jpg";
+          const ext = nome.split(".").pop();
+          // @ts-ignore
+          pacote.append("file", { uri: imagem, name: nome, type: `image/${ext}` });
+        }
       }
 
       pacote.append("material", materialSelecionado);
@@ -112,8 +117,7 @@ export default function NovoOrcamento() {
       );
       setImagem(null);
       setTamanhoSelecionado(null);
-    } catch (error) {
-      console.error(error);
+    } catch {
       Alert.alert("Erro", "Não foi possível enviar o orçamento. Tente novamente.");
     } finally {
       setEnviando(false);
@@ -126,7 +130,7 @@ export default function NovoOrcamento() {
       contentContainerStyle={styles.conteudo}
     >
       {/* Cabeçalho */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.btnVoltar}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
@@ -269,7 +273,7 @@ const styles = StyleSheet.create({
 
   header: {
     backgroundColor: "#9810FA",
-    paddingTop: 55, paddingBottom: 20, paddingHorizontal: 16,
+    paddingBottom: 20, paddingHorizontal: 16,
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
   },
   btnVoltar: { padding: 4 },

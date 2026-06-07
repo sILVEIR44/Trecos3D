@@ -8,6 +8,8 @@ import { AuthContext } from "../../context/AuthContext"
 import { useTheme } from "../../context/ThemeContext"
 import api from "../../services/authService"
 
+const CATEGORIAS_PRODUTO = ["Brinquedos", "Utilitários", "Decoração"]
+
 type Produto = {
   id: number
   title: string
@@ -15,6 +17,7 @@ type Produto = {
   price: number
   stock: number
   image_url: string
+  category: string
 }
 
 export default function Produtos() {
@@ -24,6 +27,15 @@ export default function Produtos() {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(false)
 
+  const [searchQuery, setSearchQuery] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("Todos")
+
+  const produtosFiltrados = produtos.filter(p => {
+    const nomeOk = p.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    const categoriaOk = categoryFilter === "Todos" || p.category === categoryFilter
+    return nomeOk && categoriaOk
+  })
+
   const [modalVisivel, setModalVisivel] = useState(false)
   const [modoModal, setModoModal] = useState<"adicionar" | "editar">("adicionar")
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null)
@@ -32,6 +44,7 @@ export default function Produtos() {
   const [preco, setPreco] = useState("")
   const [estoque, setEstoque] = useState("")
   const [imagem, setImagem] = useState("")
+  const [categoria, setCategoria] = useState("Utilitários")
   const [salvando, setSalvando] = useState(false)
 
   const headers = { Authorization: `Bearer ${token}` }
@@ -43,7 +56,6 @@ export default function Produtos() {
       const response = await api.get("/products", { headers })
       setProdutos(response.data)
     } catch (error) {
-      console.log("Erro ao buscar produtos:", error)
       setErro(true)
     } finally {
       setCarregando(false)
@@ -53,7 +65,7 @@ export default function Produtos() {
   function abrirAdicao() {
     setModoModal("adicionar")
     setProdutoEditando(null)
-    setTitulo(""); setDescricao(""); setPreco(""); setEstoque(""); setImagem("")
+    setTitulo(""); setDescricao(""); setPreco(""); setEstoque(""); setImagem(""); setCategoria("Utilitários")
     setModalVisivel(true)
   }
 
@@ -65,6 +77,7 @@ export default function Produtos() {
     setPreco(String(produto.price))
     setEstoque(String(produto.stock))
     setImagem(produto.image_url ?? "")
+    setCategoria(produto.category || "Utilitários")
     setModalVisivel(true)
   }
 
@@ -85,6 +98,7 @@ export default function Produtos() {
       price: parseFloat(preco.replace(",", ".")),
       stock: parseInt(estoque) || 0,
       image_url: imagem,
+      category: categoria,
     }
     try {
       if (modoModal === "adicionar") {
@@ -98,7 +112,6 @@ export default function Produtos() {
       }
       fecharModal()
     } catch (error) {
-      console.log("Erro ao salvar produto:", error)
       Alert.alert("Erro", "Não foi possível salvar o produto.")
     } finally {
       setSalvando(false)
@@ -121,7 +134,6 @@ export default function Produtos() {
       await api.delete(`/products/${id}`, { headers })
       setProdutos(lista => lista.filter(p => p.id !== id))
     } catch (error) {
-      console.log("Erro ao excluir produto:", error)
       Alert.alert("Erro", "Não foi possível excluir o produto.")
     }
   }
@@ -158,21 +170,72 @@ export default function Produtos() {
       <View style={styles.header}>
         <View>
           <Text style={styles.titulo}>Produtos</Text>
-          <Text style={styles.subtitulo}>{produtos.length} item(s) na vitrine</Text>
+          <Text style={styles.subtitulo}>
+            {produtosFiltrados.length === produtos.length
+              ? `${produtos.length} item(s) na vitrine`
+              : `${produtosFiltrados.length} de ${produtos.length} encontrado(s)`}
+          </Text>
         </View>
         <TouchableOpacity style={styles.botaoAdicionar} onPress={abrirAdicao}>
           <Ionicons name="add" size={28} color="#FFF" />
         </TouchableOpacity>
       </View>
 
+      {/* Busca + Filtros */}
+      <View style={[styles.buscaArea, { backgroundColor: colors.background }]}>
+        <View style={[styles.buscaContainer, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+          <Ionicons name="search-outline" size={16} color={colors.subtext} style={{ marginRight: 6 }} />
+          <TextInput
+            style={[styles.buscaInput, { color: colors.text }]}
+            placeholder="Buscar produto..."
+            placeholderTextColor={colors.placeholder}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <Ionicons name="close-circle" size={18} color={colors.subtext} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtrosConteudo}
+        >
+          {["Todos", ...CATEGORIAS_PRODUTO].map(cat => {
+            const ativo = cat === categoryFilter
+            return (
+              <TouchableOpacity
+                key={cat}
+                style={[
+                  styles.filtroChip,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                  ativo && styles.filtroChipAtivo,
+                ]}
+                onPress={() => setCategoryFilter(cat)}
+              >
+                <Text style={[styles.filtroChipTexto, { color: colors.subtext }, ativo && styles.filtroChipTextoAtivo]}>
+                  {cat}
+                </Text>
+              </TouchableOpacity>
+            )
+          })}
+        </ScrollView>
+      </View>
+
       <FlatList
-        data={produtos}
+        data={produtosFiltrados}
         keyExtractor={item => String(item.id)}
         contentContainerStyle={styles.lista}
         ListEmptyComponent={
           <View style={styles.centro}>
-            <Ionicons name="cube-outline" size={60} color="#CCC" />
-            <Text style={[styles.textoErro, { color: colors.text }]}>Nenhum produto cadastrado.</Text>
+            <Ionicons name={searchQuery || categoryFilter !== "Todos" ? "search-outline" : "cube-outline"} size={60} color="#CCC" />
+            <Text style={[styles.textoErro, { color: colors.text }]}>
+              {searchQuery || categoryFilter !== "Todos" ? "Nenhum produto encontrado." : "Nenhum produto cadastrado."}
+            </Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -261,6 +324,28 @@ export default function Produtos() {
               spellCheck={true}
             />
 
+            <Text style={[styles.label, { color: colors.text }]}>Categoria</Text>
+            <View style={styles.chipRow}>
+              {CATEGORIAS_PRODUTO.map(cat => {
+                const ativo = cat === categoria
+                return (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.chip,
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                      ativo && styles.chipAtivo,
+                    ]}
+                    onPress={() => setCategoria(cat)}
+                  >
+                    <Text style={[styles.chipTexto, { color: colors.subtext }, ativo && styles.chipTextoAtivo]}>
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+
             <Text style={[styles.label, { color: colors.text }]}>Descrição</Text>
             <TextInput
               style={[styles.input, styles.inputArea, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
@@ -321,6 +406,22 @@ const styles = StyleSheet.create({
   titulo: { color: "white", fontSize: 22, fontWeight: "bold" },
   subtitulo: { color: "rgba(255,255,255,0.8)", fontSize: 14, marginTop: 4 },
   botaoAdicionar: { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 10, padding: 6 },
+  buscaArea: { paddingTop: 12, paddingBottom: 4 },
+  buscaContainer: {
+    flexDirection: "row", alignItems: "center",
+    marginHorizontal: 16, borderRadius: 10, borderWidth: 1,
+    paddingHorizontal: 12, height: 44, marginBottom: 10,
+  },
+  buscaInput: { flex: 1, fontSize: 14 },
+  filtrosConteudo: { paddingHorizontal: 16, gap: 8, paddingBottom: 8, alignItems: "center" },
+  filtroChip: {
+    minWidth: 80, paddingHorizontal: 16, paddingVertical: 7,
+    borderRadius: 20, borderWidth: 1, alignItems: "center",
+  },
+  filtroChipAtivo: { backgroundColor: "#9810FA", borderColor: "#9810FA" },
+  filtroChipTexto: { fontSize: 13, fontWeight: "600" },
+  filtroChipTextoAtivo: { color: "white", fontWeight: "bold" },
+
   lista: { padding: 16, gap: 12 },
 
   cartao: { borderRadius: 12, padding: 14, elevation: 2 },
@@ -352,6 +453,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, height: 48, fontSize: 15,
   },
   inputArea: { height: 100, textAlignVertical: "top", paddingTop: 12 },
+  chipRow: { flexDirection: "row", gap: 8, marginBottom: 4 },
+  chip: {
+    flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, alignItems: "center",
+  },
+  chipAtivo: { backgroundColor: "#9810FA", borderColor: "#9810FA" },
+  chipTexto: { fontSize: 13, fontWeight: "bold" },
+  chipTextoAtivo: { color: "white" },
+
   botaoSalvar: {
     backgroundColor: "#9810FA", flexDirection: "row", alignItems: "center", justifyContent: "center",
     paddingVertical: 15, borderRadius: 10, marginTop: 24, gap: 8,

@@ -45,7 +45,6 @@ export default function Login() {
       }
     } catch (error) {
       alert("Acesso Negado: E-mail ou senha inválidos.");
-      console.log(error);
     }
   }
   

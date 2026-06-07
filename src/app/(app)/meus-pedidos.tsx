@@ -46,7 +46,6 @@ export default function MeusPedidos() {
       })
       setPedidos(response.data)
     } catch (error) {
-      console.log("Erro ao buscar pedidos:", error)
       setErro(true)
     } finally {
       setCarregando(false)

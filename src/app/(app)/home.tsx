@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react"
 import {
-  View, Text, StyleSheet, FlatList, ActivityIndicator,
+  View, Text, StyleSheet, ActivityIndicator,
   Image, TouchableOpacity, TextInput, ScrollView, Modal,
 } from "react-native"
 import { LinearGradient } from "expo-linear-gradient"
@@ -27,7 +27,7 @@ export default function Home() {
       const response = await api.get("/products")
       setProdutos(response.data)
     } catch (error) {
-      console.log("Erro ao buscar produtos:", error)
+      // erro silencioso
     } finally {
       setCarregando(false)
     }
@@ -43,53 +43,10 @@ export default function Home() {
     return nomeOk && categoriaOk
   })
 
-  function renderizarProduto({ item }: any) {
-    return (
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.card }]}
-        onPress={() => setProdutoSelecionado(item)}
-      >
-        {item.image_url ? (
-          <Image source={{ uri: item.image_url }} style={styles.imagemCard} />
-        ) : (
-          <View style={[styles.imagemVazia, { backgroundColor: colors.border }]} />
-        )}
-
-        <View style={styles.badgeEstoque}>
-          <Text style={styles.badgeTexto}>Em Estoque</Text>
-        </View>
-
-        {item.category && (
-          <View style={styles.badgeCategoria}>
-            <Text style={styles.badgeCategoriaTexto}>{item.category}</Text>
-          </View>
-        )}
-
-        <View style={styles.cardInfo}>
-          <Text style={[styles.cardTitulo, { color: colors.text }]} numberOfLines={1}>
-            {item.title}
-          </Text>
-          <Text style={[styles.cardDescricao, { color: colors.subtext }]} numberOfLines={2}>
-            {item.description}
-          </Text>
-          <View style={styles.cardRodape}>
-            <Text style={[styles.cardPreco, { color: colors.text }]}>
-              R$ {Number(item.price).toFixed(2)}
-            </Text>
-            <TouchableOpacity
-              style={styles.botaoComprar}
-              onPress={() => adicionarAoCarrinho(item)}
-            >
-              <Text style={styles.botaoComprarTexto}>Comprar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
-    )
-  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header fixo */}
       <LinearGradient colors={["#9810FA", "#E60076"]} style={styles.header}>
         <View style={styles.headerTopo}>
           <Text style={styles.headerLogo}>Loja 3D</Text>
@@ -97,80 +54,123 @@ export default function Home() {
         </View>
       </LinearGradient>
 
-      <View style={[styles.buscaContainer, { backgroundColor: colors.card }]}>
-        <Ionicons name="search-outline" size={18} color={colors.subtext} style={styles.buscaIcone} />
-        <TextInput
-          style={[styles.buscaInput, { color: colors.text }]}
-          placeholder="Buscar produtos..."
-          placeholderTextColor={colors.placeholder}
-          value={busca}
-          onChangeText={setBusca}
-        />
-      </View>
-
+      {/* Todo o conteúdo num único ScrollView */}
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filtrosScroll}
-        contentContainerStyle={styles.filtrosConteudo}
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {CATEGORIAS.map(cat => (
-          <TouchableOpacity
-            key={cat}
-            style={[
-              styles.filtro,
-              { backgroundColor: colors.card, borderColor: colors.border },
-              categoriaAtiva === cat && styles.filtroAtivo,
-            ]}
-            onPress={() => setCategoriaAtiva(cat)}
-          >
-            <Text style={[
-              styles.filtroTexto,
-              { color: colors.subtext },
-              categoriaAtiva === cat && styles.filtroTextoAtivo,
-            ]}>
-              {cat}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+        {/* Busca */}
+        <View style={[styles.buscaContainer, { backgroundColor: colors.card }]}>
+          <Ionicons name="search-outline" size={18} color={colors.subtext} style={styles.buscaIcone} />
+          <TextInput
+            style={[styles.buscaInput, { color: colors.text }]}
+            placeholder="Buscar produtos..."
+            placeholderTextColor={colors.placeholder}
+            value={busca}
+            onChangeText={setBusca}
+          />
+        </View>
 
-      {/* Banner: Novo Orçamento */}
-      <TouchableOpacity
-        style={styles.bannerOrcamento}
-        onPress={() => router.push("/novo-orcamento")}
-        activeOpacity={0.85}
-      >
-        <LinearGradient
-          colors={["#9810FA", "#E60076"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.bannerGradient}
+        {/* Filtros por categoria */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filtrosScroll}
+          contentContainerStyle={styles.filtrosConteudo}
+          nestedScrollEnabled
         >
-          <Ionicons name="print-outline" size={26} color="white" />
-          <View style={styles.bannerTextos}>
-            <Text style={styles.bannerTitulo}>Tem uma peça para imprimir?</Text>
-            <Text style={styles.bannerSub}>Solicite um orçamento grátis →</Text>
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
+          {CATEGORIAS.map(cat => (
+            <TouchableOpacity
+              key={cat}
+              style={[
+                styles.filtro,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                categoriaAtiva === cat && styles.filtroAtivo,
+              ]}
+              onPress={() => setCategoriaAtiva(cat)}
+            >
+              <Text style={[
+                styles.filtroTexto,
+                { color: colors.subtext },
+                categoriaAtiva === cat && styles.filtroTextoAtivo,
+              ]}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
-      {carregando ? (
-        <ActivityIndicator size="large" color="#9810FA" style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={produtosFiltrados}
-          keyExtractor={item => item.id.toString()}
-          renderItem={renderizarProduto}
-          contentContainerStyle={styles.lista}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
+        {/* Banner orçamento */}
+        <TouchableOpacity
+          style={styles.bannerOrcamento}
+          onPress={() => router.push("/novo-orcamento")}
+          activeOpacity={0.85}
+        >
+          <LinearGradient
+            colors={["#9810FA", "#E60076"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.bannerGradient}
+          >
+            <Ionicons name="print-outline" size={26} color="white" />
+            <View style={styles.bannerTextos}>
+              <Text style={styles.bannerTitulo}>Tem uma peça para imprimir?</Text>
+              <Text style={styles.bannerSub}>Solicite um orçamento grátis →</Text>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Produtos */}
+        <View style={styles.lista}>
+          {carregando ? (
+            <ActivityIndicator size="large" color="#9810FA" style={{ marginVertical: 40 }} />
+          ) : produtosFiltrados.length === 0 ? (
             <Text style={[styles.listaVazia, { color: colors.subtext }]}>
               Nenhum produto encontrado.
             </Text>
-          }
-        />
-      )}
+          ) : (
+            produtosFiltrados.map(item => (
+              <TouchableOpacity
+                key={item.id.toString()}
+                style={[styles.card, { backgroundColor: colors.card }]}
+                onPress={() => setProdutoSelecionado(item)}
+              >
+                {item.image_url ? (
+                  <Image source={{ uri: item.image_url }} style={styles.imagemCard} />
+                ) : (
+                  <View style={[styles.imagemVazia, { backgroundColor: colors.border }]} />
+                )}
+                <View style={styles.badgeEstoque}>
+                  <Text style={styles.badgeTexto}>Em Estoque</Text>
+                </View>
+                <View style={styles.cardInfo}>
+                  <Text style={[styles.cardTitulo, { color: colors.text }]} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  {item.category && (
+                    <Text style={[styles.cardCategoria, { color: colors.subtext }]}>{item.category}</Text>
+                  )}
+                  <Text style={[styles.cardDescricao, { color: colors.subtext }]} numberOfLines={2}>
+                    {item.description}
+                  </Text>
+                  <View style={styles.cardRodape}>
+                    <Text style={[styles.cardPreco, { color: colors.text }]}>
+                      R$ {Number(item.price).toFixed(2)}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.botaoComprar}
+                      onPress={() => adicionarAoCarrinho(item)}
+                    >
+                      <Text style={styles.botaoComprarTexto}>Comprar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
+      </ScrollView>
 
       {/* Modal de detalhe do produto */}
       <Modal
@@ -267,23 +267,24 @@ const styles = StyleSheet.create({
   buscaIcone: { marginRight: 8 },
   buscaInput: { flex: 1, height: 42, fontSize: 14 },
 
-  filtrosScroll: { marginTop: 12, maxHeight: 40 },
-  filtrosConteudo: { paddingHorizontal: 16, gap: 8 },
+  filtrosScroll: { marginTop: 12, height: 46 },
+  filtrosConteudo: { paddingHorizontal: 16, gap: 8, alignItems: "center", height: 46 },
   filtro: {
-    paddingHorizontal: 16, paddingVertical: 6,
-    borderRadius: 20, borderWidth: 1,
+    height: 34, minWidth: 80, paddingHorizontal: 16,
+    borderRadius: 17, borderWidth: 1,
+    alignItems: "center", justifyContent: "center",
   },
   filtroAtivo: { backgroundColor: "#9810FA", borderColor: "#9810FA" },
   filtroTexto: { fontSize: 13 },
   filtroTextoAtivo: { color: "white", fontWeight: "bold" },
 
-  bannerOrcamento: { marginHorizontal: 16, marginTop: 14, borderRadius: 14, overflow: "hidden", elevation: 3 },
+  bannerOrcamento: { marginHorizontal: 16, marginTop: 12, borderRadius: 14, overflow: "hidden", elevation: 3 },
   bannerGradient: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, gap: 12 },
   bannerTextos: { flex: 1 },
   bannerTitulo: { color: "white", fontWeight: "bold", fontSize: 15 },
   bannerSub: { color: "rgba(255,255,255,0.85)", fontSize: 12, marginTop: 2 },
 
-  lista: { padding: 16, gap: 14 },
+  lista: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32, gap: 12, flexDirection: "column" },
   listaVazia: { textAlign: "center", marginTop: 50, fontSize: 15 },
 
   card: { borderRadius: 12, overflow: "hidden", elevation: 2 },
@@ -295,14 +296,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#22C55E", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
   },
   badgeTexto: { color: "white", fontSize: 11, fontWeight: "bold" },
-  badgeCategoria: {
-    position: "absolute", top: 10, left: 10,
-    backgroundColor: "#9810FA22", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
-  },
-  badgeCategoriaTexto: { color: "#9810FA", fontSize: 11, fontWeight: "bold" },
-
   cardInfo: { padding: 12 },
-  cardTitulo: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
+  cardTitulo: { fontSize: 16, fontWeight: "bold", marginBottom: 2 },
+  cardCategoria: { fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 },
   cardDescricao: { fontSize: 13, marginBottom: 10 },
   cardRodape: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   cardPreco: { fontSize: 17, fontWeight: "bold" },

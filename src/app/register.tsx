@@ -45,7 +45,6 @@ export default function Login() {
       router.replace("/login");
 
     } catch (error) {
-      console.log("Erro na criação de conta do usuário: ", error);
       alert("Falha ao criar a conta. Verifique se o e-mail já existe ou se o servidor está ativo.");
     }
   }

@@ -22,7 +22,6 @@ export default function Dashboard() {
       })
       setDados(response.data.dashboard)
     } catch (error) {
-      console.log("Erro ao buscar dashboard:", error)
       setErro(true)
     } finally {
       setCarregando(false)

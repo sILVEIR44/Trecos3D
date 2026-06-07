@@ -19,7 +19,19 @@ const upload = multer({ storage: multer.memoryStorage() });
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
-// Rota de Teste 
+// Migrações automáticas
+db.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'Utilitários'").catch(() => {});
+db.query(`
+  CREATE TABLE IF NOT EXISTS order_items (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+    product_title TEXT NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    unit_price NUMERIC(10,2) NOT NULL
+  )
+`).catch(() => {});
+
+// Rota de Teste
 app.get('/', (req, res) => {
   res.json({ message: 'A API de Impressão 3D está online.' });
 });
@@ -73,35 +85,20 @@ app.post('/orcamentos', upload.single('file'), async (req, res) => {
         const { material, estimated_grams, calculated_price, user_id } = req.body;
         const file = req.file;
 
-        if (!file) {
-            return res.status(400).json({ error: 'A imagem da peça é obrigatória!' }); //pegou mal essa frase ai...
+        // Foto é opcional: só faz upload se o utilizador enviou ficheiro
+        let publicUrl = '';
+        if (file) {
+            const nomeArquivo = `${user_id}_${Date.now()}_${file.originalname}`;
+            const { error: erroUpload } = await supabase.storage
+                .from('orcamentos')
+                .upload(nomeArquivo, file.buffer, { contentType: file.mimetype });
+            if (erroUpload) {
+                return res.status(500).json({ error: 'Falha ao guardar a imagem.' });
+            }
+            const { data: urlData } = supabase.storage.from('orcamentos').getPublicUrl(nomeArquivo);
+            publicUrl = urlData.publicUrl;
         }
 
-        console.log(`Recebendo orçamento do aldeão ${user_id}...`);
-
-        // 2. Criar um nome único para a imagem
-        const nomeArquivo = `${user_id}_${Date.now()}_${file.originalname}`;
-
-        // 3. Enviar para o cofre do Supabase (Storage)
-        const { error: erroUpload } = await supabase.storage
-            .from('orcamentos')
-            .upload(nomeArquivo, file.buffer, {
-                contentType: file.mimetype,
-            });
-
-        if (erroUpload) {
-            console.error("Erro no cofre:", erroUpload);
-            return res.status(500).json({ error: 'Falha ao guardar a imagem no cofre.' });
-        }
-
-        // pega o url público da imagem que foi guardado
-        const { data: urlData } = supabase.storage
-            .from('orcamentos')
-            .getPublicUrl(nomeArquivo);
-        
-        const publicUrl = urlData.publicUrl;
-
-        // escreve na tabela os negocio
         const query = `
             INSERT INTO quotes (user_id, file_url, material, estimated_grams, calculated_price, status)
             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
@@ -126,7 +123,6 @@ app.post('/orcamentos', upload.single('file'), async (req, res) => {
 app.get('/orcamentos/:user_id', async (req, res) => {
   try {
     const userId = req.params.user_id;
-    console.log(`Listando orçamentos para o aldeão ${userId}...`);
     
     const query = `
       SELECT * FROM quotes 
@@ -202,19 +198,19 @@ app.get('/cofre', verificarToken, verificarAdmin, (req, res) => {
 //rota adicionar produto ao catalogo (apenas admin)
 app.post('/products', verificarToken, verificarAdmin, async (req, res) => {
   try {
-    const { title, description, price, stock, image_url } = req.body;
+    const { title, description, price, stock, image_url, category } = req.body;
 
     //validação básica
     if (!title || !price) {
       return res.status(400).json({ error: 'O título e o preço são obrigatórios!'});
     }
-    
+
     const query = `
-      INSERT INTO products (title, description, price, stock, image_url)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO products (title, description, price, stock, image_url, category)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *;
     `;
-    const values = [title, description, price, stock || 0, image_url || ''];
+    const values = [title, description, price, stock || 0, image_url || '', category || 'Utilitários'];
   
     const result = await db.query(query, values);
   
@@ -326,16 +322,14 @@ app.get('/orders/me', verificarToken, async (req, res) => {
 //rota Criar pedido
 app.post('/orders', verificarToken, async (req, res) => {
   try {
-    const { quote_id, total_value, item_count } = req.body;
-    
+    const { quote_id, total_value, item_count, items } = req.body;
+
     if (!total_value || !item_count) {
       return res.status(400).json({ error: 'O valor total e a quantidade de itens são obrigatórios!' });
     }
-    //A REGRA DE NEGÓCIO 
+
     let valorFinalCalculado = total_value;
     let descontoAplicado = false;
-
-    //se pedir 10 ou mais ganha 10% desconto
     if (item_count >= 10) {
       valorFinalCalculado = total_value * 0.90;
       descontoAplicado = true;
@@ -346,14 +340,24 @@ app.post('/orders', verificarToken, async (req, res) => {
     VALUES ($1, $2, $3, $4, 'preparing')
     RETURNING *;
     `;
-
     const values = [req.userId, quote_id || null, valorFinalCalculado, item_count];
     const result = await db.query(query, values);
+    const orderId = result.rows[0].id;
+
+    // Salvar itens do pedido
+    if (Array.isArray(items) && items.length > 0) {
+      for (const item of items) {
+        await db.query(
+          'INSERT INTO order_items (order_id, product_title, quantity, unit_price) VALUES ($1, $2, $3, $4)',
+          [orderId, item.product_title, item.quantity, item.unit_price]
+        );
+      }
+    }
 
     res.status(201).json({
       message: descontoAplicado
-      ? 'Pedido criado! Você ganhou 10% de desconto por comprar 10 ou mais itens!'
-      : 'Pedido criado com sucesso!',
+        ? 'Pedido criado! Você ganhou 10% de desconto por comprar 10 ou mais itens!'
+        : 'Pedido criado com sucesso!',
       desconto_aplicado: descontoAplicado,
       order: result.rows[0]
     });
@@ -374,7 +378,11 @@ app.get('/orders/:id', verificarToken, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Pedido não encontrado.' });
     }
-    res.json(result.rows[0]);
+    const itemsResult = await db.query(
+      'SELECT * FROM order_items WHERE order_id = $1 ORDER BY id',
+      [req.params.id]
+    );
+    res.json({ ...result.rows[0], items: itemsResult.rows });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Erro interno ao buscar o pedido.' });
@@ -397,18 +405,19 @@ app.get('/admin/orcamentos', verificarToken, verificarAdmin, async (req, res) =>
 // Atualizar produto (admin)
 app.put('/products/:id', verificarToken, verificarAdmin, async (req, res) => {
   try {
-    const { title, description, price, stock, image_url } = req.body;
+    const { title, description, price, stock, image_url, category } = req.body;
     const query = `
       UPDATE products
       SET title       = COALESCE($1, title),
           description = COALESCE($2, description),
           price       = COALESCE($3, price),
           stock       = COALESCE($4, stock),
-          image_url   = COALESCE($5, image_url)
-      WHERE id = $6
+          image_url   = COALESCE($5, image_url),
+          category    = COALESCE($6, category)
+      WHERE id = $7
       RETURNING *;
     `;
-    const result = await db.query(query, [title, description, price, stock, image_url, req.params.id]);
+    const result = await db.query(query, [title, description, price, stock, image_url, category, req.params.id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Produto não encontrado.' });
     }

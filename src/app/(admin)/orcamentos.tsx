@@ -23,9 +23,7 @@ export default function Orcamentos() {
         headers: { Authorization: `Bearer ${token}` },
       })
       setOrcamentos(response.data)
-    } catch (error: any) {
-      console.log("Erro ao buscar orçamentos — status:", error?.response?.status)
-      console.log("Erro ao buscar orçamentos — body:", JSON.stringify(error?.response?.data))
+    } catch {
       setErro(true)
     } finally {
       setCarregando(false)
