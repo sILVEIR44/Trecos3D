@@ -1,27 +1,33 @@
 import React, { useContext, useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert, Modal } from "react-native";
+import {
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  Image, ActivityIndicator, Alert,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { CartContext, ProdutoCarrinho } from "../../context/CartContext";
+import { CartContext } from "../../context/CartContext";
 import { AuthContext } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
-import api from "../../services/authService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Carrinho() {
   const router = useRouter();
   const { carrinho, removerDoCarrinho, aumentarQuantidade, diminuirQuantidade, limparCarrinho } = useContext(CartContext) as any;
   const { token, user } = useContext(AuthContext) as any;
-  
-  const [ listaOrcamentos, setListaOrcamentos ] = useState<any[]>([]);
-  const [ carregandoOrcamentos, setCarregandoOrcamentos ] = useState(true);
+  const { colors } = useTheme();
 
-  // A vossa magia de buscar as peças 3D
+  const [listaOrcamentos, setListaOrcamentos] = useState<any[]>([]);
+  const [carregandoOrcamentos, setCarregandoOrcamentos] = useState(true);
+  const [sucesso, setSucesso] = useState<string | null>(null);
+  const [finalizando, setFinalizando] = useState(false);
+
   const buscarMeusOrcamentos = async () => {
     try {
-      const response = await api.get(`/orcamentos/${user?.id}`);
-      setListaOrcamentos(response.data);
+      const urlAPI = `http://192.168.5.235:3000/orcamentos/${user?.id}`;
+      const resposta = await fetch(urlAPI);
+      const dados = await resposta.json();
+      setListaOrcamentos(dados);
     } catch (error) {
-      console.error("Erro ao buscar orçamentos:", error);
+      // silencioso
     } finally {
       setCarregandoOrcamentos(false);
     }
@@ -31,31 +37,30 @@ export default function Carrinho() {
     buscarMeusOrcamentos();
   }, []);
 
-  function confirmarRemocao(id: string | number) {
+  function confirmarRemocao(id: string | number, titulo: string) {
     Alert.alert(
       "Remover item",
-      "Deseja mesmo remover?",
+      `Deseja remover "${titulo}" do carrinho?`,
       [
-        { text: "Não", style: "cancel" },
-        { text: "Sim", style: "destructive", onPress: () => removerDoCarrinho(id) },
+        { text: "Cancelar", style: "cancel" },
+        { text: "Remover", style: "destructive", onPress: () => removerDoCarrinho(id) },
       ]
     );
   }
 
-  // O cartão do item da loja (Feito pelo aliado)
   function renderizarItem({ item }: any) {
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
         {item.image_url ? (
           <Image source={{ uri: item.image_url }} style={styles.imagem} />
         ) : (
-          <View style={styles.imagemVazia}>
+          <View style={[styles.imagemVazia, { backgroundColor: colors.border }]}>
             <Ionicons name="cube-outline" size={28} color="#CCC" />
           </View>
         )}
 
         <View style={styles.info}>
-          <Text style={styles.titulo} numberOfLines={2}>{item.title}</Text>
+          <Text style={[styles.titulo, { color: colors.text }]} numberOfLines={2}>{item.title}</Text>
           <Text style={styles.preco}>R$ {Number(item.price).toFixed(2)}</Text>
 
           <View style={styles.quantidade}>
@@ -64,112 +69,139 @@ export default function Carrinho() {
                 <Ionicons name="remove" size={16} color="#9810FA" />
               </TouchableOpacity>
             )}
-            <Text style={styles.qtdTexto}>{item.quantidade}</Text>
+            <Text style={[styles.qtdTexto, { color: colors.text }]}>{item.quantidade}</Text>
             <TouchableOpacity style={styles.btnQtd} onPress={() => aumentarQuantidade(item.id)}>
               <Ionicons name="add" size={16} color="#9810FA" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.btnRemover} onPress={() => confirmarRemocao(item.id)}>
+        <TouchableOpacity style={styles.btnRemover} onPress={() => confirmarRemocao(item.id, item.title)}>
           <Ionicons name="trash-outline" size={20} color="#EF4444" />
         </TouchableOpacity>
       </View>
     );
   }
 
-  // A matemática do Imperador: Soma Loja + Orçamentos 3D
-  const totalLoja = carrinho.reduce(( total: number, item: any ) => total + ( item.price * item.quantidade ), 0);
-  const totalOrcamentos = listaOrcamentos.reduce(( total: number, item: any ) => total + Number(item.calculated_price), 0);
+  const totalLoja = carrinho.reduce((total: number, item: any) => total + (item.price * item.quantidade), 0);
+  const totalOrcamentos = listaOrcamentos.reduce((total: number, item: any) => total + Number(item.calculated_price), 0);
   const valorTotal = totalLoja + totalOrcamentos;
 
-  // A vossa rota de finalização
   const finalizarPedido = async () => {
     if (carrinho.length === 0 && listaOrcamentos.length === 0) {
-      alert("Atenção, o seu carrinho está vazio. Adicione itens antes de finalizar.");
+      Alert.alert("Carrinho vazio", "Adicione itens antes de finalizar.");
       return;
     }
-    
-    const token = await AsyncStorage.getItem("@Trecos3D:token");
     if (!token) {
-      Alert.alert("Sessão expirada", "Por favor, faça login novamente.");
+      Alert.alert("Sessão expirada", "Faça login novamente.");
       return;
     }
 
+    setFinalizando(true);
     const quantidadeProdutos = carrinho.reduce((acc: number, item: any) => acc + item.quantidade, 0);
-    const quantidadeOrcamentos = listaOrcamentos.length; 
-    const totalItens = quantidadeProdutos + quantidadeOrcamentos;
+    const totalItens = quantidadeProdutos + listaOrcamentos.length;
+    const itensDoPedido = carrinho.map((item: any) => ({
+      product_title: item.title,
+      quantity: item.quantidade,
+      unit_price: Number(item.price),
+    }));
 
     try {
-      await api.post('/orders', {
-        total_value: valorTotal,
-        item_count: totalItens,
-        items: carrinho.map((item: ProdutoCarrinho) => ({
-          id: item.id,
-          title: item.title,
-          price: item.price,
-          quantidade: item.quantidade,
-        })),
-      })
+      const resposta = await fetch("http://192.168.5.235:3000/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          quote_id: null,
+          total_value: valorTotal,
+          item_count: totalItens,
+          items: itensDoPedido,
+        }),
+      });
 
-      limparCarrinho()
+      const dados = await resposta.json();
 
-      Alert.alert(
-        "🎉 Pedido finalizado com sucesso!",
-        "Seu pedido foi recebido e está sendo preparado. Acompanhe o status em 'Meus Pedidos'.",
-        [{ text: "Voltar à Loja", onPress: () => router.replace("/home") }]
-      )
-    } catch (error) {
-      console.error("Erro ao finalizar pedido:", error)
-      Alert.alert("Erro", "Não foi possível finalizar o pedido. Tente novamente.")
+      if (resposta.ok) {
+        limparCarrinho();
+        setSucesso(dados.message || "Pedido enviado com sucesso!");
+        setTimeout(() => {
+          setSucesso(null);
+          router.replace("/meus-pedidos");
+        }, 2200);
+      } else {
+        Alert.alert("Erro ao finalizar", dados.error || "Tente novamente.");
+      }
+    } catch {
+      Alert.alert("Erro de conexão", "Verifique a sua ligação e tente novamente.");
+    } finally {
+      setFinalizando(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Meu Carrinho</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
 
-      {/* --- SEÇÃO 1: ITENS DA LOJA --- */}
+      {/* Banner de sucesso */}
+      {sucesso && (
+        <View style={styles.bannerSucesso}>
+          <Ionicons name="checkmark-circle" size={22} color="white" />
+          <Text style={styles.bannerSucessoTexto}>{sucesso}</Text>
+        </View>
+      )}
+
+      <Text style={[styles.header, { color: colors.text }]}>Meu Carrinho</Text>
+
+      {/* Itens da loja */}
       {carrinho.length === 0 ? (
-        <View style={styles.vazio}>
+        <View style={[styles.vazio, { backgroundColor: colors.card }]}>
           <Ionicons name="cart-outline" size={40} color="#CCC" />
-          <Text style={styles.vazioTexto}>Nenhum item da loja adicionado.</Text>
+          <Text style={[styles.vazioTexto, { color: colors.subtext }]}>Nenhum item da loja adicionado.</Text>
         </View>
       ) : (
         <FlatList
           data={carrinho}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={item => item.id.toString()}
           renderItem={renderizarItem}
-          style={{ maxHeight: 250 }} 
+          style={{ maxHeight: 250 }}
           showsVerticalScrollIndicator={false}
         />
       )}
 
-      {/* --- SEÇÃO 2: ORÇAMENTOS 3D  --- */}
-      <Text style={styles.tituloSecao}>Meus Orçamentos (Peças 3D)</Text>
+      {/* Orçamentos 3D */}
+      <Text style={[styles.tituloSecao, { color: colors.text }]}>Meus Orçamentos (Peças 3D)</Text>
 
-      { carregandoOrcamentos ? (
+      {carregandoOrcamentos ? (
         <ActivityIndicator size="large" color="#9810FA" />
       ) : listaOrcamentos.length === 0 ? (
-        <Text style={styles.vazioTextoLista}>Nenhum orçamento pendente.</Text>
+        <Text style={[styles.vazioTextoLista, { color: colors.subtext }]}>Nenhum orçamento pendente.</Text>
       ) : (
         <FlatList
           data={listaOrcamentos}
-          keyExtractor={(item) => String(item.id)}
-          style={{ flex: 1 }} 
-          contentContainerStyle={{ paddingBottom: 100 }} // Espaço para não bater no rodapé flutuante
+          keyExtractor={item => String(item.id)}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <View style={styles.cartaoOrcamento}>
-              <Image source={{ uri: item.file_url }} style={styles.miniatura} />
+            <View style={[styles.cartaoOrcamento, { backgroundColor: colors.card }]}>
+              {item.file_url ? (
+                <Image source={{ uri: item.file_url }} style={styles.miniatura} />
+              ) : (
+                <View style={[styles.miniatura, styles.miniaturaVazia, { backgroundColor: colors.border }]}>
+                  <Ionicons name="cube-outline" size={22} color="#CCC" />
+                </View>
+              )}
               <View style={styles.detalhesCartao}>
-                <Text style={styles.textoForte}>Material: {item.material}</Text>
-                <Text style={styles.textoPeso}>Peso: {item.estimated_grams}g</Text>
+                <Text style={[styles.textoForte, { color: colors.text }]}>Material: {item.material}</Text>
+                <Text style={[styles.textoPeso, { color: colors.subtext }]}>Peso: {item.estimated_grams}g</Text>
                 <Text style={styles.textoPrecoOrcamento}>Estimativa: R$ {item.calculated_price}</Text>
-                
-                <View style={[styles.insigniaStatus, item.status === 'pending' ? styles.statusPendente : styles.statusAprovado]}>
+                <View style={[
+                  styles.insigniaStatus,
+                  item.status === "pending" ? styles.statusPendente : styles.statusAprovado,
+                ]}>
                   <Text style={styles.textoStatus}>
-                    {item.status === 'pending' ? 'Em Avaliação' : 'Aprovado'}
+                    {item.status === "pending" ? "Em Avaliação" : "Aprovado"}
                   </Text>
                 </View>
               </View>
@@ -178,14 +210,21 @@ export default function Carrinho() {
         />
       )}
 
-      {/* --- SEÇÃO 3: rodape --- */}
-      <View style={styles.rodape}>
+      {/* Rodapé */}
+      <View style={[styles.rodape, { backgroundColor: colors.card, borderTopColor: colors.divider }]}>
         <View style={styles.rodapeInfo}>
-          <Text style={styles.rodapeLabel}>Valor Total Final</Text>
-          <Text style={styles.rodapeTotal}>R$ {valorTotal.toFixed(2)}</Text>
+          <Text style={[styles.rodapeLabel, { color: colors.subtext }]}>Valor Total Final</Text>
+          <Text style={[styles.rodapeTotal, { color: colors.text }]}>R$ {valorTotal.toFixed(2)}</Text>
         </View>
-        <TouchableOpacity style={styles.botaoFinalizar} onPress={finalizarPedido}>
-          <Text style={styles.botaoFinalizarTexto}>Finalizar Pedido</Text>
+        <TouchableOpacity
+          style={[styles.botaoFinalizar, finalizando && { opacity: 0.6 }]}
+          onPress={finalizarPedido}
+          disabled={finalizando}
+        >
+          {finalizando
+            ? <ActivityIndicator color="white" size="small" />
+            : <Text style={styles.botaoFinalizarTexto}>Finalizar Pedido</Text>
+          }
         </TouchableOpacity>
       </View>
     </View>
@@ -193,246 +232,54 @@ export default function Carrinho() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F5F5F5",
-    paddingHorizontal: 16,
+  container: { flex: 1, paddingHorizontal: 16 },
+  header: { fontSize: 22, fontWeight: "bold", marginTop: 55, marginBottom: 16 },
+
+  bannerSucesso: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#10B981", borderRadius: 12,
+    paddingVertical: 14, paddingHorizontal: 16, marginTop: 55, marginBottom: -30,
   },
-  header: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginTop: 55,
-    marginBottom: 16,
-    color: "#222",
-  },
-  vazio: {
-    padding: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: "white",
-    borderRadius: 12,
-  },
-  vazioTexto: {
-    fontSize: 16,
-    color: "#888",
-    fontStyle: 'italic',
-  },
-  vazioTextoLista: {
-    fontSize: 14,
-    color: "#888",
-    fontStyle: 'italic',
-    textAlign: "center",
-    marginTop: 10,
-  },
+  bannerSucessoTexto: { color: "white", fontWeight: "bold", fontSize: 14, flex: 1 },
+
+  vazio: { padding: 20, alignItems: "center", justifyContent: "center", gap: 10, borderRadius: 12 },
+  vazioTexto: { fontSize: 16, fontStyle: "italic" },
+  vazioTextoLista: { fontSize: 14, fontStyle: "italic", textAlign: "center", marginTop: 10 },
+
   card: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    marginBottom: 12,
-    flexDirection: "row",
-    padding: 12,
-    alignItems: "center",
-    elevation: 2,
+    borderRadius: 12, marginBottom: 12, flexDirection: "row",
+    padding: 12, alignItems: "center", elevation: 2,
   },
-  imagem: {
-    width: 70,
-    height: 70,
-    borderRadius: 8,
-    backgroundColor: "#EEE",
-  },
-  imagemVazia: {
-    width: 70,
-    height: 70,
-    borderRadius: 8,
-    backgroundColor: "#EEE",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  info: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  titulo: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#222",
-    marginBottom: 4,
-  },
-  preco: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: "#9810FA",
-    marginBottom: 8,
-  },
-  quantidade: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  btnQtd: {
-    borderWidth: 1,
-    borderColor: "#9810FA",
-    borderRadius: 6,
-    padding: 4,
-  },
-  qtdTexto: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: "#222",
-    minWidth: 20,
-    textAlign: "center",
-  },
-  btnRemover: {
-    padding: 8,
-    marginLeft: 8,
-  },
+  imagem: { width: 70, height: 70, borderRadius: 8 },
+  imagemVazia: { width: 70, height: 70, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  info: { flex: 1, marginLeft: 12 },
+  titulo: { fontSize: 14, fontWeight: "bold", marginBottom: 4 },
+  preco: { fontSize: 15, fontWeight: "bold", color: "#9810FA", marginBottom: 8 },
+  quantidade: { flexDirection: "row", alignItems: "center", gap: 10 },
+  btnQtd: { borderWidth: 1, borderColor: "#9810FA", borderRadius: 6, padding: 4 },
+  qtdTexto: { fontSize: 15, fontWeight: "bold", minWidth: 20, textAlign: "center" },
+  btnRemover: { padding: 8, marginLeft: 8 },
+
+  tituloSecao: { fontSize: 18, fontWeight: "bold", marginTop: 20, marginBottom: 10 },
+  cartaoOrcamento: { flexDirection: "row", padding: 10, borderRadius: 8, marginBottom: 10, elevation: 2 },
+  miniatura: { width: 60, height: 60, borderRadius: 8, marginRight: 10, backgroundColor: "#EEE" },
+  miniaturaVazia: { alignItems: "center", justifyContent: "center" },
+  detalhesCartao: { flex: 1, justifyContent: "center" },
+  textoForte: { fontWeight: "bold", fontSize: 15 },
+  textoPeso: { fontSize: 13, marginVertical: 2 },
+  textoPrecoOrcamento: { color: "#2E8B57", fontWeight: "bold", marginVertical: 2 },
+  insigniaStatus: { marginTop: 5, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 12, alignSelf: "flex-start" },
+  statusPendente: { backgroundColor: "#fff3cd" },
+  statusAprovado: { backgroundColor: "#d1e7dd" },
+  textoStatus: { fontSize: 12, fontWeight: "bold", color: "#333" },
+
   rodape: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "white",
-    padding: 16,
-    paddingBottom: 28,
-    elevation: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#EEE",
-    gap: 12,
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    padding: 16, paddingBottom: 28, elevation: 10, borderTopWidth: 1, gap: 12,
   },
-  rodapeInfo: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  rodapeLabel: {
-    fontSize: 14,
-    color: "#888",
-  },
-  rodapeTotal: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#222",
-  },
-  botaoFinalizar: {
-    backgroundColor: "#9810FA",
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  botaoFinalizarTexto: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalBox: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 24,
-    width: "80%",
-    alignItems: "center",
-    gap: 12,
-  },
-  modalTitulo: {
-    fontSize: 17,
-    fontWeight: "bold",
-    color: "#222",
-  },
-  modalTexto: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-  },
-  modalBotoes: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
-  },
-  modalBotaoCancelar: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#DDD",
-    alignItems: "center",
-  },
-  modalBotaoCancelarTexto: {
-    color: "#555",
-    fontWeight: "bold",
-  },
-  modalBotaoRemover: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: "#EF4444",
-    alignItems: "center",
-  },
-  modalBotaoRemoverTexto: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  tituloSecao: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 10,
-    color: '#333',
-  },
-  cartaoOrcamento: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-    elevation: 2, 
-  },
-  miniatura: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 10,
-    backgroundColor: '#eee',
-  },
-  detalhesCartao: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  textoForte: {
-    fontWeight: 'bold',
-    fontSize: 15,
-    color: '#333',
-  },
-  textoPeso: {
-    fontSize: 13,
-    color: '#666',
-    marginVertical: 2,
-  },
-  textoPrecoOrcamento: {
-    color: '#2E8B57',
-    fontWeight: 'bold',
-    marginVertical: 2,
-  },
-  insigniaStatus: {
-    marginTop: 5,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  statusPendente: {
-    backgroundColor: '#fff3cd', 
-  },
-  statusAprovado: {
-    backgroundColor: '#d1e7dd', 
-  },
-  textoStatus: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#333',
-  }
+  rodapeInfo: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  rodapeLabel: { fontSize: 14 },
+  rodapeTotal: { fontSize: 20, fontWeight: "bold" },
+  botaoFinalizar: { backgroundColor: "#9810FA", paddingVertical: 14, borderRadius: 12, alignItems: "center" },
+  botaoFinalizarTexto: { color: "white", fontWeight: "bold", fontSize: 16 },
 });

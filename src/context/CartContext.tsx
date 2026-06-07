@@ -67,6 +67,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }
 
+  function limparCarrinho() {
+    setCarrinho([]);
+  }
+
   return (
     <CartContext.Provider value={{ carrinho, adicionarAoCarrinho, removerDoCarrinho, aumentarQuantidade, diminuirQuantidade, limparCarrinho }}>
       {children}

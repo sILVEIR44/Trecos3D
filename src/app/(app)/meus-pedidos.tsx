@@ -1,117 +1,180 @@
-import { useEffect, useState } from "react"
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from "react-native"
-import { Ionicons } from "@expo/vector-icons"
-import { LinearGradient } from "expo-linear-gradient"
+import { useEffect, useState, useContext } from "react"
+import {
+  View, Text, StyleSheet, FlatList,
+  ActivityIndicator, TouchableOpacity,
+} from "react-native"
 import { useRouter } from "expo-router"
+import { Ionicons } from "@expo/vector-icons"
+import { AuthContext } from "../../context/AuthContext"
+import { useTheme } from "../../context/ThemeContext"
 import api from "../../services/authService"
 
+type Pedido = {
+  id: number
+  total_value: number
+  item_count: number
+  status: string
+  created_at: string
+}
+
+const STATUS_LABELS: Record<string, { texto: string; cor: string }> = {
+  preparing: { texto: "Em Produção", cor: "#F59E0B" },
+  completed:  { texto: "Concluído",   cor: "#10B981" },
+  cancelled:  { texto: "Cancelado",   cor: "#EF4444" },
+  pending:    { texto: "Pendente",    cor: "#6B7280" },
+}
+
+function formatarData(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
+}
+
 export default function MeusPedidos() {
+  const { token } = useContext(AuthContext) as any
+  const { colors } = useTheme()
   const router = useRouter()
-  const [pedidos, setPedidos] = useState<any[]>([])
+  const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState(false)
 
   async function buscarPedidos() {
+    setCarregando(true)
+    setErro(false)
     try {
-      const response = await api.get("/orders/mine")
+      const response = await api.get("/orders/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       setPedidos(response.data)
     } catch (error) {
-      console.log("Erro ao buscar pedidos:", error)
+      setErro(true)
     } finally {
       setCarregando(false)
     }
   }
 
   useEffect(() => {
-    buscarPedidos()
+    if (token) buscarPedidos()
   }, [])
 
-  function renderizarPedido({ item }: any) {
-    const itens = typeof item.items === "string" ? JSON.parse(item.items) : item.items || []
-    const concluido = item.status === "completed"
-
+  if (carregando) {
     return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View>
-            <Text style={styles.pedidoId}>Pedido #{item.id}</Text>
-            <Text style={styles.data}>
-              {new Date(item.created_at).toLocaleDateString("pt-BR")}
-            </Text>
-          </View>
-          <View style={[styles.badge, concluido ? styles.badgeConcluido : styles.badgePendente]}>
-            <Text style={styles.badgeTexto}>{concluido ? "Entregue ✓" : "Em preparo"}</Text>
-          </View>
-        </View>
+      <View style={[styles.centro, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color="#9810FA" />
+        <Text style={[styles.textoCarregando, { color: colors.subtext }]}>Carregando seus pedidos...</Text>
+      </View>
+    )
+  }
 
-        {itens.length > 0 && (
-          <View style={styles.itensBox}>
-            {itens.map((i: any, index: number) => (
-              <Text key={index} style={styles.itemTexto}>
-                • {i.title} x{i.quantidade}
-              </Text>
-            ))}
-          </View>
-        )}
-
-        <Text style={styles.total}>Total: R$ {Number(item.total_value).toFixed(2)}</Text>
+  if (erro) {
+    return (
+      <View style={[styles.centro, { backgroundColor: colors.background }]}>
+        <Ionicons name="cloud-offline-outline" size={60} color="#CCC" />
+        <Text style={[styles.textoErro, { color: colors.text }]}>Não foi possível carregar</Text>
+        <Text style={[styles.subTexto, { color: colors.subtext }]}>Verifique a conexão com o servidor.</Text>
+        <TouchableOpacity style={styles.botaoTentar} onPress={buscarPedidos}>
+          <Ionicons name="refresh-outline" size={16} color="#9810FA" />
+          <Text style={styles.botaoTentarTexto}>Tentar novamente</Text>
+        </TouchableOpacity>
       </View>
     )
   }
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={["#9810FA", "#E60076"]} style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.botaoVoltar}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitulo}>Meus Pedidos</Text>
-      </LinearGradient>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.header}>
+        <Text style={styles.titulo}>Meus Pedidos</Text>
+        <Text style={styles.subtitulo}>
+          {pedidos.length === 0 ? "Nenhum pedido ainda" : `${pedidos.length} pedido(s)`}
+        </Text>
+      </View>
 
-      {carregando ? (
-        <ActivityIndicator size="large" color="#9810FA" style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={pedidos}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderizarPedido}
-          contentContainerStyle={styles.lista}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.vazio}>
-              <Ionicons name="receipt-outline" size={60} color="#CCC" />
-              <Text style={styles.vazioTexto}>Você ainda não fez nenhum pedido.</Text>
-            </View>
-          }
-        />
-      )}
+      <FlatList
+        data={pedidos}
+        keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={styles.lista}
+        ListEmptyComponent={
+          <View style={styles.vazio}>
+            <Ionicons name="receipt-outline" size={70} color="#DDD" />
+            <Text style={[styles.textoVazio, { color: colors.text }]}>Você ainda não fez nenhum pedido</Text>
+            <Text style={[styles.subTexto, { color: colors.subtext }]}>Explore a loja e adicione itens ao carrinho!</Text>
+          </View>
+        }
+        renderItem={({ item }) => {
+          const status = STATUS_LABELS[item.status] ?? { texto: item.status, cor: "#6B7280" }
+          return (
+            <TouchableOpacity
+              style={[styles.cartao, { backgroundColor: colors.card }]}
+              onPress={() => router.push({ pathname: "/detalhes-pedido", params: { id: item.id } })}
+              activeOpacity={0.75}
+            >
+              <View style={styles.cartaoTopo}>
+                <View style={styles.idBox}>
+                  <Text style={[styles.idLabel, { color: colors.subtext }]}>Pedido</Text>
+                  <Text style={[styles.idValor, { color: colors.text }]}>#{item.id}</Text>
+                </View>
+                <View style={[styles.badge, { backgroundColor: status.cor + "22" }]}>
+                  <Text style={[styles.badgeTexto, { color: status.cor }]}>{status.texto}</Text>
+                </View>
+              </View>
+
+              <View style={[styles.divisor, { backgroundColor: colors.divider }]} />
+
+              <View style={styles.cartaoInfo}>
+                <View style={styles.infoLinha}>
+                  <Ionicons name="calendar-outline" size={15} color={colors.subtext} />
+                  <Text style={[styles.infoTexto, { color: colors.subtext }]}>{formatarData(item.created_at)}</Text>
+                </View>
+                <View style={styles.infoLinha}>
+                  <Ionicons name="cube-outline" size={15} color={colors.subtext} />
+                  <Text style={[styles.infoTexto, { color: colors.subtext }]}>{item.item_count} item(s)</Text>
+                </View>
+              </View>
+
+              <View style={styles.cartaoRodape}>
+                <Text style={styles.totalValor}>R$ {Number(item.total_value).toFixed(2)}</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.border} />
+              </View>
+            </TouchableOpacity>
+          )
+        }}
+      />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F5F5F5" },
+  centro: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, padding: 20 },
+  textoCarregando: { fontSize: 15, marginTop: 8 },
+  textoErro: { fontSize: 17, fontWeight: "bold", marginTop: 8 },
+  subTexto: { fontSize: 14, textAlign: "center" },
+  botaoTentar: {
+    flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12,
+    borderWidth: 1, borderColor: "#9810FA", paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8,
+  },
+  botaoTentarTexto: { color: "#9810FA", fontWeight: "bold" },
 
-  header: { paddingTop: 55, paddingBottom: 20, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 16 },
-  botaoVoltar: { padding: 4 },
-  headerTitulo: { color: "white", fontSize: 20, fontWeight: "bold" },
+  container: { flex: 1 },
+  header: {
+    backgroundColor: "#9810FA", paddingTop: 55, paddingBottom: 20, paddingHorizontal: 20,
+  },
+  titulo: { color: "white", fontSize: 22, fontWeight: "bold" },
+  subtitulo: { color: "rgba(255,255,255,0.8)", fontSize: 14, marginTop: 4 },
 
-  lista: { padding: 16, gap: 12 },
+  lista: { padding: 16, gap: 12, flexGrow: 1 },
+  vazio: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 60, gap: 10 },
+  textoVazio: { fontSize: 16, fontWeight: "bold", textAlign: "center" },
 
-  card: { backgroundColor: "white", borderRadius: 12, padding: 16, elevation: 2 },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 },
-  pedidoId: { fontSize: 15, fontWeight: "bold", color: "#222" },
-  data: { fontSize: 12, color: "#888", marginTop: 2 },
-
+  cartao: { borderRadius: 12, padding: 16, elevation: 2 },
+  cartaoTopo: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  idBox: {},
+  idLabel: { fontSize: 11, textTransform: "uppercase", letterSpacing: 1 },
+  idValor: { fontSize: 18, fontWeight: "bold" },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  badgePendente: { backgroundColor: "#FEF3C7" },
-  badgeConcluido: { backgroundColor: "#DCFCE7" },
-  badgeTexto: { fontSize: 12, fontWeight: "bold", color: "#444" },
-
-  itensBox: { backgroundColor: "#F9F9F9", borderRadius: 8, padding: 10, marginBottom: 10 },
-  itemTexto: { fontSize: 13, color: "#444", marginBottom: 2 },
-
-  total: { fontSize: 15, fontWeight: "bold", color: "#9810FA" },
-
-  vazio: { alignItems: "center", marginTop: 60, gap: 12 },
-  vazioTexto: { color: "#AAA", fontSize: 15, textAlign: "center" },
+  badgeTexto: { fontSize: 13, fontWeight: "bold" },
+  divisor: { height: 1, marginVertical: 12 },
+  cartaoInfo: { gap: 6, marginBottom: 12 },
+  infoLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
+  infoTexto: { fontSize: 14 },
+  cartaoRodape: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  totalValor: { fontSize: 22, fontWeight: "bold", color: "#9810FA" },
 })

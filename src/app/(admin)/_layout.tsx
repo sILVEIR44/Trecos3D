@@ -1,34 +1,29 @@
-import { useContext, useEffect } from "react"
-import { Tabs, useRouter } from "expo-router"
+import { useContext } from "react"
+import { Tabs, Redirect } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
 import { AuthContext } from "../../context/AuthContext"
+import { useTheme } from "../../context/ThemeContext"
 
 export default function AdminLayout() {
   const { user, isLoading } = useContext(AuthContext)
-  const router = useRouter()
-
-  useEffect(() => {
-    if (isLoading) return
-    if (!user) {
-      router.replace("/login")
-    } else if (user.role !== "admin") {
-      router.replace("/(app)/home" as any)
-    }
-  }, [user, isLoading])
+  const { colors } = useTheme()
 
   if (isLoading) return null
-  if (!user || user.role !== "admin") return null
+  if (!user) return <Redirect href="/login" />
+  if (user.role === "user") return <Redirect href="/home" />
+
+  const isAdmin = user.role === "admin" || user.role === "superadmin"
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: "#9810FA",
-        tabBarInactiveTintColor: "gray",
+        tabBarInactiveTintColor: colors.subtext,
         tabBarStyle: {
-          backgroundColor: "#ffffff",
+          backgroundColor: colors.tabBar,
           borderTopWidth: 1,
-          borderTopColor: "#e0e0e0",
+          borderTopColor: colors.tabBarBorder,
           height: 65,
           paddingBottom: 10,
           paddingTop: 5,
@@ -48,18 +43,19 @@ export default function AdminLayout() {
         name="produtos"
         options={{
           title: "Produtos",
+          href: isAdmin ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cube-outline" size={size} color={color} />
           ),
         }}
       />
-
       <Tabs.Screen
-        name="pedidos"
+        name="orcamentos"
         options={{
-          title: "Pedidos",
+          title: "Orçamentos",
+          href: isAdmin ? undefined : null,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="receipt-outline" size={size} color={color} />
+            <Ionicons name="document-text-outline" size={size} color={color} />
           ),
         }}
       />

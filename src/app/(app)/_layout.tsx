@@ -1,38 +1,30 @@
-import { useContext, useEffect } from "react";
-import { Tabs, useRouter } from "expo-router";
+import { useContext } from "react";
+import { Tabs, Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 import { CartProvider } from "../../context/CartContext";
 import { AuthContext } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function AppLayout() {
   const { user, isLoading } = useContext(AuthContext);
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (user && (user.role === "admin")) {
-      router.replace("/(admin)/dashboard" as any);
-    }
-  }, [user, isLoading]);
+  const { colors, isDark } = useTheme();
 
   if (isLoading) return null;
-  if (!user) {
-    router.replace("/login");
-    return null;
-  }
-  if (user.role === "admin") return null;
+  if (!user) return <Redirect href="/login" />;
 
   return (
     <CartProvider>
+      <StatusBar style={isDark ? "light" : "dark"} />
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: "black",
-          tabBarInactiveTintColor: "gray",
+          tabBarActiveTintColor: colors.text,
+          tabBarInactiveTintColor: colors.subtext,
           tabBarStyle: {
-            backgroundColor: "#ffffff",
+            backgroundColor: colors.tabBar,
             borderTopWidth: 1,
-            borderTopColor: "#e0e0e0",
+            borderTopColor: colors.tabBarBorder,
             height: 65,
             paddingBottom: 10,
             paddingTop: 5,
@@ -48,7 +40,6 @@ export default function AppLayout() {
             ),
           }}
         />
-
         <Tabs.Screen
           name="carrinho"
           options={{
@@ -58,7 +49,15 @@ export default function AppLayout() {
             ),
           }}
         />
-
+        <Tabs.Screen
+          name="meus-pedidos"
+          options={{
+            title: "Pedidos",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="receipt-outline" size={size} color={color} />
+            ),
+          }}
+        />
         <Tabs.Screen
           name="perfil"
           options={{
@@ -67,21 +66,6 @@ export default function AppLayout() {
               <Ionicons name="person-outline" size={size} color={color} />
             ),
           }}
-        />
-
-        <Tabs.Screen
-          name="orcamento"
-          options={{
-            title: "Orçamento",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="bulb-outline" size={size} color={color} />
-            ),
-          }}
-        />
-
-        <Tabs.Screen
-          name="meus-pedidos"
-          options={{ href: null }}
         />
       </Tabs>
     </CartProvider>

@@ -31,7 +31,6 @@ export default function HomeGuest() {
       const response = await api.get("/products")
       setProdutos(response.data)
     } catch (error) {
-      console.log("Erro ao buscar produtos:", error)
     } finally {
       setCarregando(false)
     }
