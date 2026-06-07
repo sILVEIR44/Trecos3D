@@ -1,9 +1,10 @@
 import { useEffect, useState, useContext } from "react"
 import {
   View, Text, StyleSheet, FlatList,
-  ActivityIndicator, TouchableOpacity, Image, Alert,
+  ActivityIndicator, TouchableOpacity, Image,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
+import { useRouter } from "expo-router"
 import { AuthContext } from "../../context/AuthContext"
 import { useTheme } from "../../context/ThemeContext"
 import api from "../../services/authService"
@@ -11,6 +12,7 @@ import api from "../../services/authService"
 export default function Orcamentos() {
   const { token } = useContext(AuthContext)
   const { colors } = useTheme()
+  const router = useRouter()
   const [orcamentos, setOrcamentos] = useState<any[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(false)
@@ -19,31 +21,12 @@ export default function Orcamentos() {
     setCarregando(true)
     setErro(false)
     try {
-      const response = await api.get("/admin/orcamentos", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const response = await api.get("/admin/orcamentos")
       setOrcamentos(response.data)
     } catch {
       setErro(true)
     } finally {
       setCarregando(false)
-    }
-  }
-
-  async function despacharOrdem(id: number, status: "approved" | "rejected") {
-    try {
-      await api.put(
-        `/quotes/${id}/status`,
-        { status },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      Alert.alert(
-        "Sucesso!",
-        `Orçamento ${status === "approved" ? "aprovado" : "rejeitado"} com sucesso.`
-      )
-      setOrcamentos(lista => lista.filter(item => item.id !== id))
-    } catch {
-      Alert.alert("Erro", "Não foi possível executar a ação.")
     }
   }
 
@@ -79,15 +62,16 @@ export default function Orcamentos() {
       <View style={styles.header}>
         <Text style={styles.titulo}>Orçamentos</Text>
         <Text style={styles.subtitulo}>
-          {orcamentos.length === 0 ? "Nenhum pendente" : `${orcamentos.length} pendente(s)`}
+          {orcamentos.length === 0
+            ? "Nenhum orçamento"
+            : `${orcamentos.filter((o: any) => o.status === "pending").length} pendente(s) · ${orcamentos.length} total`}
         </Text>
       </View>
 
       {orcamentos.length === 0 ? (
         <View style={styles.centro}>
           <Ionicons name="checkmark-done-circle-outline" size={60} color="#10B981" />
-          <Text style={[styles.textoVazio, { color: colors.text }]}>Tudo em dia!</Text>
-          <Text style={[styles.subTextoErro, { color: colors.subtext }]}>Não há orçamentos pendentes.</Text>
+          <Text style={[styles.textoVazio, { color: colors.text }]}>Nenhum orçamento ainda.</Text>
         </View>
       ) : (
         <FlatList
@@ -95,47 +79,63 @@ export default function Orcamentos() {
           keyExtractor={item => String(item.id)}
           contentContainerStyle={styles.lista}
           renderItem={({ item }) => (
-            <View style={[styles.cartao, { backgroundColor: colors.card }]}>
+            <TouchableOpacity
+              style={[styles.cartao, { backgroundColor: colors.card }]}
+              onPress={() => router.push({ pathname: "/(screens)/detalhes-orcamento" as any, params: { id: item.id } })}
+              activeOpacity={0.75}
+            >
               <View style={styles.cartaoTopo}>
-                <Image source={{ uri: item.file_url }} style={styles.imagem} />
+                {item.file_url ? (
+                  <Image source={{ uri: item.file_url }} style={styles.imagem} />
+                ) : (
+                  <View style={[styles.imagem, styles.imagemVazia]}>
+                    <Ionicons name="image-outline" size={28} color="#CCC" />
+                  </View>
+                )}
+
                 <View style={styles.info}>
-                  <Text style={[styles.infoTexto, { color: colors.subtext }]}>
-                    <Text style={[styles.negrito, { color: colors.text }]}>Usuário ID: </Text>
-                    {item.user_id}
+                  <Text style={[styles.infoNome, { color: colors.text }]} numberOfLines={1}>
+                    {item.user_name || `Usuário #${item.user_id}`}
                   </Text>
-                  <Text style={[styles.infoTexto, { color: colors.subtext }]}>
-                    <Text style={[styles.negrito, { color: colors.text }]}>Material: </Text>
-                    {item.material}
-                  </Text>
-                  <Text style={[styles.infoTexto, { color: colors.subtext }]}>
-                    <Text style={[styles.negrito, { color: colors.text }]}>Peso (g): </Text>
-                    {item.estimated_grams}
-                  </Text>
-                  <Text style={styles.preco}>
-                    R$ {Number(item.calculated_price).toFixed(2)}
-                  </Text>
+                  <View style={styles.infoLinha}>
+                    <Ionicons name="cube-outline" size={13} color="#9810FA" />
+                    <Text style={[styles.infoTexto, { color: colors.subtext }]}>{item.material}</Text>
+                  </View>
+                  {item.tamanho ? (
+                    <View style={styles.infoLinha}>
+                      <Ionicons name="resize-outline" size={13} color="#9810FA" />
+                      <Text style={[styles.infoTexto, { color: colors.subtext }]}>{item.tamanho}</Text>
+                    </View>
+                  ) : null}
+                  {item.phone ? (
+                    <View style={styles.infoLinha}>
+                      <Ionicons name="logo-whatsapp" size={13} color="#25D366" />
+                      <Text style={[styles.infoTexto, { color: colors.subtext }]}>{item.phone}</Text>
+                    </View>
+                  ) : null}
+                  <Text style={styles.preco}>R$ {Number(item.calculated_price).toFixed(2)}</Text>
                 </View>
+
+                {item.status === "approved" && (
+                  <Ionicons name="checkmark-circle" size={22} color="#16A34A" />
+                )}
+                {item.status === "rejected" && (
+                  <Ionicons name="close-circle" size={22} color="#DC2626" />
+                )}
+                {item.status === "pending" && (
+                  <Ionicons name="chevron-forward" size={20} color={colors.subtext} />
+                )}
               </View>
-              <View style={styles.acoes}>
-                <TouchableOpacity
-                  style={[styles.botao, styles.botaoRejeitar]}
-                  onPress={() => despacharOrdem(item.id, "rejected")}
-                >
-                  <Ionicons name="close-circle-outline" size={18} color="#FFF" />
-                  <Text style={styles.textoBotao}>Rejeitar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.botao, styles.botaoAprovar]}
-                  onPress={() => despacharOrdem(item.id, "approved")}
-                >
-                  <Ionicons name="checkmark-circle-outline" size={18} color="#FFF" />
-                  <Text style={styles.textoBotao}>Aprovar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            </TouchableOpacity>
           )}
         />
       )}
+
+      {/* Botão atualizar */}
+      <TouchableOpacity style={styles.botaoAtualizar} onPress={buscarOrcamentos}>
+        <Ionicons name="refresh-outline" size={18} color="#9810FA" />
+        <Text style={styles.botaoAtualizarTexto}>Atualizar</Text>
+      </TouchableOpacity>
     </View>
   )
 }
@@ -156,22 +156,23 @@ const styles = StyleSheet.create({
   header: { backgroundColor: "#E60076", paddingTop: 55, paddingBottom: 20, paddingHorizontal: 20 },
   titulo: { color: "white", fontSize: 22, fontWeight: "bold" },
   subtitulo: { color: "rgba(255,255,255,0.8)", fontSize: 14, marginTop: 4 },
-  lista: { padding: 16, gap: 14 },
+  lista: { padding: 16, gap: 12, paddingBottom: 80 },
 
-  cartao: { borderRadius: 12, padding: 15, elevation: 2 },
-  cartaoTopo: { flexDirection: "row", marginBottom: 14 },
-  imagem: { width: 80, height: 80, borderRadius: 8, backgroundColor: "#EEE" },
-  info: { flex: 1, marginLeft: 14, justifyContent: "center" },
-  infoTexto: { fontSize: 13, marginBottom: 2 },
-  negrito: { fontWeight: "bold" },
-  preco: { fontSize: 17, fontWeight: "bold", color: "#9810FA", marginTop: 4 },
+  cartao: { borderRadius: 14, padding: 14, elevation: 2 },
+  cartaoTopo: { flexDirection: "row", alignItems: "center", gap: 12 },
+  imagem: { width: 72, height: 72, borderRadius: 10, backgroundColor: "#EEE" },
+  imagemVazia: { alignItems: "center", justifyContent: "center" },
+  info: { flex: 1, gap: 4 },
+  infoNome: { fontSize: 15, fontWeight: "bold", marginBottom: 2 },
+  infoLinha: { flexDirection: "row", alignItems: "center", gap: 5 },
+  infoTexto: { fontSize: 13 },
+  preco: { fontSize: 16, fontWeight: "bold", color: "#9810FA", marginTop: 4 },
 
-  acoes: { flexDirection: "row", gap: 10 },
-  botao: {
-    flex: 1, flexDirection: "row", alignItems: "center",
-    justifyContent: "center", paddingVertical: 10, borderRadius: 8, gap: 5,
+  botaoAtualizar: {
+    position: "absolute", bottom: 20, alignSelf: "center",
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: "white", paddingHorizontal: 20, paddingVertical: 10,
+    borderRadius: 20, borderWidth: 1, borderColor: "#9810FA", elevation: 3,
   },
-  botaoRejeitar: { backgroundColor: "#DC3545" },
-  botaoAprovar: { backgroundColor: "#28A745" },
-  textoBotao: { color: "#FFF", fontWeight: "bold", fontSize: 14 },
+  botaoAtualizarTexto: { color: "#9810FA", fontWeight: "bold" },
 })

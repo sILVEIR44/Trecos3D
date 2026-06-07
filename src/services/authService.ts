@@ -1,6 +1,18 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../config/api';
+
 const api = axios.create({
-  baseURL: 'http://192.168.5.235:3000', // Coloca seu ip aqui
+  baseURL: API_BASE_URL,
+});
+
+// Injeta o token JWT em todas as requisições automaticamente
+api.interceptors.request.use(async (config) => {
+  const token = await AsyncStorage.getItem('@Trecos3D:token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export default api;

@@ -19,13 +19,9 @@ export default function Perfil() {
   const { user, signOut } = useContext(AuthContext) as any;
   const { isDark, toggleTheme, colors } = useTheme();
 
-  async function realizarLogout() {
-    try {
-      await signOut();
-      router.replace("/login");
-    } catch {
-      Alert.alert("Erro", "Não foi possível sair. Tente novamente.");
-    }
+  function realizarLogout() {
+    router.replace("/login");
+    setTimeout(() => signOut(), 300);
   }
 
   function confirmarSaida() {
@@ -52,6 +48,31 @@ export default function Perfil() {
         <View style={styles.badge}>
           <Text style={styles.badgeTexto}>{nomeRole(user?.role)}</Text>
         </View>
+      </View>
+
+      {/* Meus Pedidos e Orçamentos */}
+      <Text style={[styles.secaoTitulo, { color: colors.subtext }]}>Compras</Text>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <TouchableOpacity
+          style={[styles.linhaCard, { borderBottomColor: colors.divider }]}
+          onPress={() => router.push("/(app)/meus-pedidos" as any)}
+        >
+          <View style={styles.linhaEsquerda}>
+            <Ionicons name="receipt-outline" size={20} color="#9810FA" />
+            <Text style={[styles.linhaTexto, { color: colors.text }]}>Meus Pedidos</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.border} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.linhaCard, { borderBottomWidth: 0 }]}
+          onPress={() => router.push("/(screens)/meus-orcamentos" as any)}
+        >
+          <View style={styles.linhaEsquerda}>
+            <Ionicons name="cube-outline" size={20} color="#9810FA" />
+            <Text style={[styles.linhaTexto, { color: colors.text }]}>Meus Orçamentos</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.border} />
+        </TouchableOpacity>
       </View>
 
       {/* Segurança */}

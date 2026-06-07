@@ -14,13 +14,28 @@ export default function Login() {
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmaSenha, setConfirmaSenha] = useState("");
 
+  function formatarTelefone(valor: string) {
+    const numeros = valor.replace(/\D/g, "").slice(0, 11);
+    if (numeros.length <= 2) return `(${numeros}`;
+    if (numeros.length <= 7) return `(${numeros.slice(0,2)}) ${numeros.slice(2)}`;
+    if (numeros.length <= 10) return `(${numeros.slice(0,2)}) ${numeros.slice(2,6)}-${numeros.slice(6)}`;
+    return `(${numeros.slice(0,2)}) ${numeros.slice(2,7)}-${numeros.slice(7)}`;
+  }
+
   async function handleRegister() {
     //verifica se ta preenchido
-    if (!nome || !email || !senha) {
+    if (!nome || !email || !telefone || !senha) {
       alert("Atenção! Preencha todos os campos do pergaminho.");
+      return;
+    }
+    // verifica telefone mínimo (10 dígitos)
+    const digits = telefone.replace(/\D/g, "");
+    if (digits.length < 10) {
+      alert("Informe um número de telefone válido.");
       return;
     }
     // verifica se as senhas tao iguais
@@ -33,11 +48,13 @@ export default function Login() {
       const response = await api.post('/register', {
         name: nome,
         email: email,
+        phone: telefone,
         password: senha
       });
       alert("Usuário criado com sucesso!");
       setNome("");
       setEmail("");
+      setTelefone("");
       setSenha("");
       setConfirmaSenha("");
       
@@ -77,6 +94,16 @@ export default function Login() {
               value={email}
               style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
             ></TextInput>
+          </View>
+          <Text style={styles.txt}>Telefone / WhatsApp *</Text>
+          <View style={styles.input}>
+            <TextInput
+              placeholder="(XX) XXXXX-XXXX"
+              onChangeText={(v) => setTelefone(formatarTelefone(v))}
+              value={telefone}
+              keyboardType="phone-pad"
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
+            />
           </View>
           <Text style={styles.txtSenha}>Senha</Text>
           <View style={styles.input}>

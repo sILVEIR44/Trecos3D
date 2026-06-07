@@ -21,6 +21,21 @@ const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 // Migrações automáticas
 db.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'Utilitários'").catch(() => {});
+db.query("ALTER TABLE quotes ADD COLUMN IF NOT EXISTS phone VARCHAR(20) DEFAULT ''").catch(() => {});
+db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20) DEFAULT ''").catch(() => {});
+db.query("ALTER TABLE quotes ADD COLUMN IF NOT EXISTS tamanho VARCHAR(100) DEFAULT ''").catch(() => {});
+// Garante que o status 'ordered' é permitido na tabela quotes
+db.query(`
+  ALTER TABLE quotes DROP CONSTRAINT IF EXISTS quotes_status_check;
+  ALTER TABLE quotes ADD CONSTRAINT quotes_status_check
+    CHECK (status IN ('pending', 'approved', 'rejected', 'ordered'));
+`).catch(() => {});
+// Corrige o constraint de status dos pedidos para aceitar 'completed' e 'cancelled'
+db.query(`
+  ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
+  ALTER TABLE orders ADD CONSTRAINT orders_status_check
+    CHECK (status IN ('preparing', 'printing', 'ready', 'delivered', 'completed', 'cancelled'));
+`).catch(() => {});
 db.query(`
   CREATE TABLE IF NOT EXISTS order_items (
     id SERIAL PRIMARY KEY,
@@ -40,7 +55,7 @@ app.get('/', (req, res) => {
 app.post('/register', async (req, res) => {
   try {
     // o que esperamos receber do celular ou do teste?
-    const { name, email, password, role } = req.body;
+    const { name, email, password, phone, role } = req.body;
 
     //  verifica se os dados vieram vazios
     if (!name || !email || !password) {
@@ -53,13 +68,13 @@ app.post('/register', async (req, res) => {
 
     // Insere ao Banco de Dados
     const query = `
-      INSERT INTO users (name, email, password_hash, role) 
-      VALUES ($1, $2, $3, $4) 
-      RETURNING id, name, email, role;
+      INSERT INTO users (name, email, password_hash, phone, role)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, name, email, phone, role;
     `;
-    
-    // Os valores que vao substituir os $1, $2, $3, $4
-    const values = [name, email, passwordHash, role || 'user'];
+
+    // Os valores que vao substituir os $1, $2, $3, $4, $5
+    const values = [name, email, passwordHash, phone || '', role || 'user'];
 
     const result = await db.query(query, values);
 
@@ -81,8 +96,7 @@ app.post('/register', async (req, res) => {
 
 app.post('/orcamentos', upload.single('file'), async (req, res) => {
     try {
-        // 1. O guarda abre o pacote
-        const { material, estimated_grams, calculated_price, user_id } = req.body;
+        const { material, estimated_grams, calculated_price, user_id, phone, tamanho } = req.body;
         const file = req.file;
 
         // Foto é opcional: só faz upload se o utilizador enviou ficheiro
@@ -100,10 +114,10 @@ app.post('/orcamentos', upload.single('file'), async (req, res) => {
         }
 
         const query = `
-            INSERT INTO quotes (user_id, file_url, material, estimated_grams, calculated_price, status)
-            VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
+            INSERT INTO quotes (user_id, file_url, material, estimated_grams, calculated_price, status, phone, tamanho)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;
         `;
-        const values = [user_id, publicUrl, material, estimated_grams, calculated_price, 'pending'];
+        const values = [user_id, publicUrl, material, estimated_grams, calculated_price, 'pending', phone || '', tamanho || ''];
 
         const result = await db.query(query, values);
 
@@ -273,6 +287,24 @@ app.post('/quotes', verificarToken, async (req, res) => {
   }
 });
 
+// rota: Deletar orçamento (pelo próprio usuário, apenas se ainda pendente)
+app.delete('/quotes/:id', verificarToken, async (req, res) => {
+  try {
+    const quoteId = req.params.id;
+    const result = await db.query(
+      "DELETE FROM quotes WHERE id = $1 AND user_id = $2 AND status = 'pending' RETURNING id",
+      [quoteId, req.userId]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Orçamento não encontrado ou não pode ser removido.' });
+    }
+    res.json({ message: 'Orçamento removido com sucesso.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro ao remover orçamento.' });
+  }
+});
+
 //rota Atualizar status orçamento
 app.put('/quotes/:id/status', verificarToken, verificarAdmin, async (req, res) => {
   try {
@@ -309,7 +341,8 @@ app.put('/quotes/:id/status', verificarToken, verificarAdmin, async (req, res) =
 app.get('/orders/me', verificarToken, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC',
+      `SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at ASC) AS user_order_number
+       FROM orders WHERE user_id = $1 ORDER BY created_at DESC`,
       [req.userId]
     );
     res.json(result.rows);
@@ -322,7 +355,7 @@ app.get('/orders/me', verificarToken, async (req, res) => {
 //rota Criar pedido
 app.post('/orders', verificarToken, async (req, res) => {
   try {
-    const { quote_id, total_value, item_count, items } = req.body;
+    const { total_value, item_count, items, quote_ids } = req.body;
 
     if (!total_value || !item_count) {
       return res.status(400).json({ error: 'O valor total e a quantidade de itens são obrigatórios!' });
@@ -336,12 +369,11 @@ app.post('/orders', verificarToken, async (req, res) => {
     }
 
     const query = `
-    INSERT INTO orders (user_id, quote_id, total_value, item_count, status)
-    VALUES ($1, $2, $3, $4, 'preparing')
+    INSERT INTO orders (user_id, total_value, item_count, status)
+    VALUES ($1, $2, $3, 'preparing')
     RETURNING *;
     `;
-    const values = [req.userId, quote_id || null, valorFinalCalculado, item_count];
-    const result = await db.query(query, values);
+    const result = await db.query(query, [req.userId, valorFinalCalculado, item_count]);
     const orderId = result.rows[0].id;
 
     // Salvar itens do pedido
@@ -351,6 +383,17 @@ app.post('/orders', verificarToken, async (req, res) => {
           'INSERT INTO order_items (order_id, product_title, quantity, unit_price) VALUES ($1, $2, $3, $4)',
           [orderId, item.product_title, item.quantity, item.unit_price]
         );
+      }
+    }
+
+    // Marcar orçamentos como "ordered" para saírem do carrinho
+    if (Array.isArray(quote_ids) && quote_ids.length > 0) {
+      for (const qid of quote_ids) {
+        const r = await db.query(
+          "UPDATE quotes SET status = 'ordered' WHERE id = $1 AND user_id = $2 RETURNING id",
+          [qid, req.userId]
+        );
+        console.log(`Orçamento ${qid} marcado como ordered:`, r.rows);
       }
     }
 
@@ -368,20 +411,88 @@ app.post('/orders', verificarToken, async (req, res) => {
   }
 });
 
-// Buscar um pedido específico do usuário autenticado
-app.get('/orders/:id', verificarToken, async (req, res) => {
+// Listar todos os pedidos (admin)
+app.get('/orders', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT * FROM orders WHERE id = $1 AND user_id = $2',
-      [req.params.id, req.userId]
+      `SELECT o.*, u.name AS user_name, u.email AS user_email,
+        ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.created_at ASC) AS user_order_number
+       FROM orders o
+       LEFT JOIN users u ON u.id = o.user_id
+       ORDER BY o.created_at DESC`
     );
+
+    // Buscar os itens de cada pedido
+    for (const pedido of result.rows) {
+      const itemsResult = await db.query(
+        'SELECT * FROM order_items WHERE order_id = $1 ORDER BY id',
+        [pedido.id]
+      );
+      pedido.items = itemsResult.rows;
+    }
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno ao listar os pedidos.' });
+  }
+});
+
+// Atualizar status de um pedido (admin)
+app.put('/orders/:id/status', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const statusPermitidos = ['preparing', 'printing', 'ready', 'delivered', 'completed', 'cancelled'];
+
+    if (!statusPermitidos.includes(status)) {
+      return res.status(400).json({ error: 'Status inválido.' });
+    }
+
+    const result = await db.query(
+      'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
+      [status, req.params.id]
+    );
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Pedido não encontrado.' });
     }
+
+    res.json({ message: 'Status atualizado.', order: result.rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno ao atualizar o status.' });
+  }
+});
+
+// Buscar um pedido específico (admin vê qualquer pedido, user só vê o seu)
+app.get('/orders/:id', verificarToken, async (req, res) => {
+  try {
+    let result;
+    if (req.userRole === 'admin') {
+      result = await db.query(
+        `SELECT o.*, u.name AS user_name, u.email AS user_email,
+          ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.created_at ASC) AS user_order_number
+         FROM orders o LEFT JOIN users u ON u.id = o.user_id
+         WHERE o.id = $1`,
+        [req.params.id]
+      );
+    } else {
+      result = await db.query(
+        `SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at ASC) AS user_order_number
+         FROM orders WHERE id = $1 AND user_id = $2`,
+        [req.params.id, req.userId]
+      );
+    }
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Pedido não encontrado.' });
+    }
+
     const itemsResult = await db.query(
       'SELECT * FROM order_items WHERE order_id = $1 ORDER BY id',
       [req.params.id]
     );
+
     res.json({ ...result.rows[0], items: itemsResult.rows });
   } catch (error) {
     console.error(error);
@@ -389,11 +500,30 @@ app.get('/orders/:id', verificarToken, async (req, res) => {
   }
 });
 
-// Listar todos os orçamentos pendentes (admin)
+// Buscar um orçamento específico (admin)
+app.get('/admin/orcamentos/:id', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT q.*, u.name AS user_name, u.email AS user_email
+       FROM quotes q LEFT JOIN users u ON u.id = q.user_id
+       WHERE q.id = $1`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Orçamento não encontrado.' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno ao buscar o orçamento.' });
+  }
+});
+
+// Listar todos os orçamentos (admin)
 app.get('/admin/orcamentos', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const result = await db.query(
-      "SELECT * FROM quotes WHERE status = 'pending' ORDER BY created_at DESC"
+      `SELECT q.*, u.name AS user_name FROM quotes q LEFT JOIN users u ON u.id = q.user_id ORDER BY q.created_at DESC`
     );
     res.json(result.rows);
   } catch (error) {

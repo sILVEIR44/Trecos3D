@@ -1,7 +1,7 @@
 import React, { useState, useContext } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
-  ScrollView, Alert, Platform, ActivityIndicator,
+  ScrollView, Alert, Platform, ActivityIndicator, TextInput,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -9,6 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
+import api from "../../services/authService";
 
 const MATERIAIS = ["PLA", "ABS", "PETG"];
 const TAMANHOS: { label: string; gramas: number; horas: number }[] = [
@@ -32,7 +33,17 @@ export default function NovoOrcamento() {
   const [imagem, setImagem] = useState<string | null>(null);
   const [materialSelecionado, setMaterialSelecionado] = useState("PLA");
   const [tamanhoSelecionado, setTamanhoSelecionado] = useState<(typeof TAMANHOS)[0] | null>(null);
+  const [whatsapp, setWhatsapp] = useState("");
   const [enviando, setEnviando] = useState(false);
+
+  function formatarTelefone(valor: string) {
+    // Remove tudo que não for número
+    const numeros = valor.replace(/\D/g, "").slice(0, 11);
+    if (numeros.length <= 2) return `(${numeros}`;
+    if (numeros.length <= 7) return `(${numeros.slice(0,2)}) ${numeros.slice(2)}`;
+    if (numeros.length <= 10) return `(${numeros.slice(0,2)}) ${numeros.slice(2,6)}-${numeros.slice(6)}`;
+    return `(${numeros.slice(0,2)}) ${numeros.slice(2,7)}-${numeros.slice(7)}`;
+  }
 
   const precoEstimado =
     tamanhoSelecionado
@@ -46,7 +57,7 @@ export default function NovoOrcamento() {
       return;
     }
     const resultado = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'] as any,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.9,
@@ -61,7 +72,7 @@ export default function NovoOrcamento() {
       return;
     }
     const resultado = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'] as any,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
@@ -76,6 +87,10 @@ export default function NovoOrcamento() {
     }
     if (!tamanhoSelecionado) {
       Alert.alert("Atenção", "Selecione o tamanho aproximado da peça.");
+      return;
+    }
+    if (!whatsapp.trim()) {
+      Alert.alert("Atenção", "Informe seu WhatsApp para entrarmos em contato.");
       return;
     }
 
@@ -102,21 +117,23 @@ export default function NovoOrcamento() {
       pacote.append("estimated_grams", String(tamanhoSelecionado.gramas));
       pacote.append("calculated_price", String(preco.toFixed(2)));
       pacote.append("user_id", String(user?.id ?? 1));
+      pacote.append("phone", whatsapp.trim());
+      pacote.append("tamanho", tamanhoSelecionado.label);
 
-      const resposta = await fetch("http://192.168.5.235:3000/orcamentos", {
-        method: "POST",
-        body: pacote,
+      const resposta = await api.post("/orcamentos", pacote, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      if (!resposta.ok) throw new Error("Falha na API.");
+      if (!resposta.data) throw new Error("Falha na API.");
 
       Alert.alert(
-        "Orçamento Enviado!",
-        `Recebemos sua solicitação.\nValor estimado: R$ ${preco.toFixed(2)}\n\nAguarde nossa análise.`,
+        "Orçamento Enviado! ✓",
+        `Recebemos sua solicitação.\nValor estimado: R$ ${preco.toFixed(2)}\n\nEntraremos em contato pelo WhatsApp informado.`,
         [{ text: "OK", onPress: () => router.back() }]
       );
       setImagem(null);
       setTamanhoSelecionado(null);
+      setWhatsapp("");
     } catch {
       Alert.alert("Erro", "Não foi possível enviar o orçamento. Tente novamente.");
     } finally {
@@ -247,6 +264,20 @@ export default function NovoOrcamento() {
           </View>
         )}
 
+        {/* WhatsApp */}
+        <Text style={[styles.secaoTitulo, { color: colors.text }]}>WhatsApp para Contato</Text>
+        <View style={[styles.inputBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+          <TextInput
+            style={[styles.inputTexto, { color: colors.text }]}
+            placeholder="(11) 99999-9999"
+            placeholderTextColor={colors.placeholder}
+            value={whatsapp}
+            onChangeText={(v) => setWhatsapp(formatarTelefone(v))}
+            keyboardType="phone-pad"
+          />
+        </View>
+
         {/* Botão enviar */}
         <TouchableOpacity
           style={[styles.botaoEnviar, enviando && { opacity: 0.6 }]}
@@ -328,6 +359,13 @@ const styles = StyleSheet.create({
   precoLabel: { fontSize: 12 },
   precoValor: { fontSize: 22, fontWeight: "bold", color: "#9810FA" },
   precoObs: { fontSize: 11, width: "100%", marginTop: 4 },
+
+  inputBox: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    borderWidth: 1, borderRadius: 12, paddingHorizontal: 14,
+    paddingVertical: 12, marginTop: 8,
+  },
+  inputTexto: { flex: 1, fontSize: 15 },
 
   botaoEnviar: {
     backgroundColor: "#9810FA", flexDirection: "row", alignItems: "center",

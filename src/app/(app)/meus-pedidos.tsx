@@ -110,7 +110,7 @@ export default function MeusPedidos() {
               <View style={styles.cartaoTopo}>
                 <View style={styles.idBox}>
                   <Text style={[styles.idLabel, { color: colors.subtext }]}>Pedido</Text>
-                  <Text style={[styles.idValor, { color: colors.text }]}>#{item.id}</Text>
+                  <Text style={[styles.idValor, { color: colors.text }]}>#{item.user_order_number ?? item.id}</Text>
                 </View>
                 <View style={[styles.badge, { backgroundColor: status.cor + "22" }]}>
                   <Text style={[styles.badgeTexto, { color: status.cor }]}>{status.texto}</Text>

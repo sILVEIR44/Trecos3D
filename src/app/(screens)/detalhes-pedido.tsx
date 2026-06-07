@@ -116,7 +116,7 @@ export default function DetalhesPedido() {
         <View style={styles.idRow}>
           <View>
             <Text style={[styles.labelCinza, { color: colors.subtext }]}>Número do Pedido</Text>
-            <Text style={[styles.idValor, { color: colors.text }]}>#{pedido.id}</Text>
+            <Text style={[styles.idValor, { color: colors.text }]}>#{(pedido as any).user_order_number ?? pedido.id}</Text>
           </View>
           <View style={[styles.badge, { backgroundColor: info.cor + "22" }]}>
             <Ionicons name={info.icone} size={15} color={info.cor} />

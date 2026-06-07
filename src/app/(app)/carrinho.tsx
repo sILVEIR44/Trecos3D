@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Image, ActivityIndicator, Alert,
@@ -8,6 +8,7 @@ import { CartContext } from "../../context/CartContext";
 import { AuthContext } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { useRouter } from "expo-router";
+import api from "../../services/authService";
 
 export default function Carrinho() {
   const router = useRouter();
@@ -15,27 +16,8 @@ export default function Carrinho() {
   const { token, user } = useContext(AuthContext) as any;
   const { colors } = useTheme();
 
-  const [listaOrcamentos, setListaOrcamentos] = useState<any[]>([]);
-  const [carregandoOrcamentos, setCarregandoOrcamentos] = useState(true);
   const [sucesso, setSucesso] = useState<string | null>(null);
   const [finalizando, setFinalizando] = useState(false);
-
-  const buscarMeusOrcamentos = async () => {
-    try {
-      const urlAPI = `http://192.168.5.235:3000/orcamentos/${user?.id}`;
-      const resposta = await fetch(urlAPI);
-      const dados = await resposta.json();
-      setListaOrcamentos(dados);
-    } catch (error) {
-      // silencioso
-    } finally {
-      setCarregandoOrcamentos(false);
-    }
-  };
-
-  useEffect(() => {
-    buscarMeusOrcamentos();
-  }, []);
 
   function confirmarRemocao(id: string | number, titulo: string) {
     Alert.alert(
@@ -83,13 +65,12 @@ export default function Carrinho() {
     );
   }
 
-  const totalLoja = carrinho.reduce((total: number, item: any) => total + (item.price * item.quantidade), 0);
-  const totalOrcamentos = listaOrcamentos.reduce((total: number, item: any) => total + Number(item.calculated_price), 0);
-  const valorTotal = totalLoja + totalOrcamentos;
+  // Total só conta produtos da loja — orçamentos são processados separadamente pelo admin
+  const valorTotal = carrinho.reduce((total: number, item: any) => total + (item.price * item.quantidade), 0);
 
   const finalizarPedido = async () => {
-    if (carrinho.length === 0 && listaOrcamentos.length === 0) {
-      Alert.alert("Carrinho vazio", "Adicione itens antes de finalizar.");
+    if (carrinho.length === 0) {
+      Alert.alert("Carrinho vazio", "Adicione produtos da loja antes de finalizar.");
       return;
     }
     if (!token) {
@@ -98,43 +79,32 @@ export default function Carrinho() {
     }
 
     setFinalizando(true);
-    const quantidadeProdutos = carrinho.reduce((acc: number, item: any) => acc + item.quantidade, 0);
-    const totalItens = quantidadeProdutos + listaOrcamentos.length;
+    const totalItens = carrinho.reduce((acc: number, item: any) => acc + item.quantidade, 0);
+
+    // Apenas itens de produtos da loja — orçamentos ficam pendentes no admin
     const itensDoPedido = carrinho.map((item: any) => ({
-      product_title: item.title,
+      product_title: item.material_selecionado
+        ? `${item.title} — Material: ${item.material_selecionado}`
+        : item.title,
       quantity: item.quantidade,
       unit_price: Number(item.price),
     }));
 
     try {
-      const resposta = await fetch("http://192.168.5.235:3000/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          quote_id: null,
-          total_value: valorTotal,
-          item_count: totalItens,
-          items: itensDoPedido,
-        }),
+      const resposta = await api.post("/orders", {
+        total_value: valorTotal,
+        item_count: totalItens,
+        items: itensDoPedido,
       });
 
-      const dados = await resposta.json();
-
-      if (resposta.ok) {
-        limparCarrinho();
-        setSucesso(dados.message || "Pedido enviado com sucesso!");
-        setTimeout(() => {
-          setSucesso(null);
-          router.replace("/meus-pedidos");
-        }, 2200);
-      } else {
-        Alert.alert("Erro ao finalizar", dados.error || "Tente novamente.");
-      }
-    } catch {
-      Alert.alert("Erro de conexão", "Verifique a sua ligação e tente novamente.");
+      limparCarrinho();
+      setSucesso(resposta.data.message || "Pedido finalizado com sucesso!");
+      setTimeout(() => {
+        setSucesso(null);
+        router.replace("/meus-pedidos");
+      }, 2200);
+    } catch (error: any) {
+      Alert.alert("Erro ao finalizar", error?.response?.data?.error || "Tente novamente.");
     } finally {
       setFinalizando(false);
     }
@@ -169,46 +139,6 @@ export default function Carrinho() {
         />
       )}
 
-      {/* Orçamentos 3D */}
-      <Text style={[styles.tituloSecao, { color: colors.text }]}>Meus Orçamentos (Peças 3D)</Text>
-
-      {carregandoOrcamentos ? (
-        <ActivityIndicator size="large" color="#9810FA" />
-      ) : listaOrcamentos.length === 0 ? (
-        <Text style={[styles.vazioTextoLista, { color: colors.subtext }]}>Nenhum orçamento pendente.</Text>
-      ) : (
-        <FlatList
-          data={listaOrcamentos}
-          keyExtractor={item => String(item.id)}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View style={[styles.cartaoOrcamento, { backgroundColor: colors.card }]}>
-              {item.file_url ? (
-                <Image source={{ uri: item.file_url }} style={styles.miniatura} />
-              ) : (
-                <View style={[styles.miniatura, styles.miniaturaVazia, { backgroundColor: colors.border }]}>
-                  <Ionicons name="cube-outline" size={22} color="#CCC" />
-                </View>
-              )}
-              <View style={styles.detalhesCartao}>
-                <Text style={[styles.textoForte, { color: colors.text }]}>Material: {item.material}</Text>
-                <Text style={[styles.textoPeso, { color: colors.subtext }]}>Peso: {item.estimated_grams}g</Text>
-                <Text style={styles.textoPrecoOrcamento}>Estimativa: R$ {item.calculated_price}</Text>
-                <View style={[
-                  styles.insigniaStatus,
-                  item.status === "pending" ? styles.statusPendente : styles.statusAprovado,
-                ]}>
-                  <Text style={styles.textoStatus}>
-                    {item.status === "pending" ? "Em Avaliação" : "Aprovado"}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          )}
-        />
-      )}
 
       {/* Rodapé */}
       <View style={[styles.rodape, { backgroundColor: colors.card, borderTopColor: colors.divider }]}>
@@ -260,18 +190,6 @@ const styles = StyleSheet.create({
   qtdTexto: { fontSize: 15, fontWeight: "bold", minWidth: 20, textAlign: "center" },
   btnRemover: { padding: 8, marginLeft: 8 },
 
-  tituloSecao: { fontSize: 18, fontWeight: "bold", marginTop: 20, marginBottom: 10 },
-  cartaoOrcamento: { flexDirection: "row", padding: 10, borderRadius: 8, marginBottom: 10, elevation: 2 },
-  miniatura: { width: 60, height: 60, borderRadius: 8, marginRight: 10, backgroundColor: "#EEE" },
-  miniaturaVazia: { alignItems: "center", justifyContent: "center" },
-  detalhesCartao: { flex: 1, justifyContent: "center" },
-  textoForte: { fontWeight: "bold", fontSize: 15 },
-  textoPeso: { fontSize: 13, marginVertical: 2 },
-  textoPrecoOrcamento: { color: "#2E8B57", fontWeight: "bold", marginVertical: 2 },
-  insigniaStatus: { marginTop: 5, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 12, alignSelf: "flex-start" },
-  statusPendente: { backgroundColor: "#fff3cd" },
-  statusAprovado: { backgroundColor: "#d1e7dd" },
-  textoStatus: { fontSize: 12, fontWeight: "bold", color: "#333" },
 
   rodape: {
     position: "absolute", bottom: 0, left: 0, right: 0,

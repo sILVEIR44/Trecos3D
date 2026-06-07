@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react"
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
-  TouchableOpacity
+  TouchableOpacity, Alert
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
+import { useRouter } from "expo-router"
 import api from "../../services/authService"
 
 export default function Pedidos() {
+  const router = useRouter()
   const [pedidos, setPedidos] = useState<any[]>([])
   const [carregando, setCarregando] = useState(true)
   const [confirmandoId, setConfirmandoId] = useState<number | null>(null)
@@ -47,20 +49,27 @@ export default function Pedidos() {
 
     return (
       <View style={[styles.card, concluido && styles.cardConcluido]}>
-        {/* Header do card */}
+        {/* Header do card — clicável para ver detalhes */}
+        <TouchableOpacity
+          onPress={() => router.push({ pathname: "/(screens)/detalhes-pedido" as any, params: { id: item.id } })}
+          activeOpacity={0.7}
+        >
         <View style={styles.cardHeader}>
           <View>
-            <Text style={styles.pedidoId}>Pedido #{item.id}</Text>
+            <Text style={styles.pedidoId}>Pedido #{item.user_order_number ?? item.id}</Text>
             <Text style={styles.pedidoData}>
               {new Date(item.created_at).toLocaleDateString("pt-BR")}
             </Text>
           </View>
-          <View style={[styles.badge, concluido ? styles.badgeConcluido : styles.badgePendente]}>
-            <Text style={styles.badgeTexto}>
-              {concluido ? "Pronto ✓" : "Preparando"}
-            </Text>
+          <View style={{ alignItems: "flex-end", gap: 4 }}>
+            <View style={[styles.badge, concluido ? styles.badgeConcluido : styles.badgePendente]}>
+              <Text style={styles.badgeTexto}>{concluido ? "Pronto ✓" : "Preparando"}</Text>
+            </View>
+            <Text style={styles.verDetalhes}>Ver detalhes →</Text>
           </View>
         </View>
+
+        </TouchableOpacity>
 
         {/* Dados do cliente */}
         <View style={styles.clienteBox}>
@@ -75,7 +84,7 @@ export default function Pedidos() {
             <Text style={styles.itensLabel}>Itens:</Text>
             {itens.map((i: any, index: number) => (
               <Text key={index} style={styles.itemTexto}>
-                • {i.title} x{i.quantidade} — R$ {Number(i.price * i.quantidade).toFixed(2)}
+                • {i.product_title} x{i.quantity} — R$ {Number(i.unit_price * i.quantity).toFixed(2)}
               </Text>
             ))}
           </View>
@@ -162,6 +171,7 @@ const styles = StyleSheet.create({
   badgeConcluido: { backgroundColor: "#DCFCE7" },
   badgeTexto: { fontSize: 12, fontWeight: "bold", color: "#444" },
 
+  verDetalhes: { fontSize: 11, color: "#9810FA", fontWeight: "bold" },
   clienteBox: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
   clienteTexto: { fontSize: 13, fontWeight: "bold", color: "#444" },
   clienteEmail: { fontSize: 12, color: "#888" },

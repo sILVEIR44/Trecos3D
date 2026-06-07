@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from "react"
 import {
   View, Text, StyleSheet, ActivityIndicator,
-  Image, TouchableOpacity, TextInput, ScrollView, Modal,
+  Image, TouchableOpacity, TextInput, ScrollView, Modal, Alert,
 } from "react-native"
 import { LinearGradient } from "expo-linear-gradient"
 import { Ionicons } from "@expo/vector-icons"
@@ -18,6 +18,7 @@ export default function Home() {
   const [busca, setBusca] = useState("")
   const [categoriaAtiva, setCategoriaAtiva] = useState("Todos")
   const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null)
+  const [materialSelecionado, setMaterialSelecionado] = useState("PLA")
   const router = useRouter()
   const { adicionarAoCarrinho } = useContext(CartContext)
   const { colors } = useTheme()
@@ -50,7 +51,9 @@ export default function Home() {
       <LinearGradient colors={["#9810FA", "#E60076"]} style={styles.header}>
         <View style={styles.headerTopo}>
           <Text style={styles.headerLogo}>Loja 3D</Text>
-          <Ionicons name="notifications-outline" size={22} color="white" />
+          <TouchableOpacity onPress={() => Alert.alert("Notificações", "Funcionalidade não desenvolvida ainda.")}>
+            <Ionicons name="notifications-outline" size={22} color="white" />
+          </TouchableOpacity>
         </View>
       </LinearGradient>
 
@@ -134,7 +137,7 @@ export default function Home() {
               <TouchableOpacity
                 key={item.id.toString()}
                 style={[styles.card, { backgroundColor: colors.card }]}
-                onPress={() => setProdutoSelecionado(item)}
+                onPress={() => { setProdutoSelecionado(item); setMaterialSelecionado("PLA") }}
               >
                 {item.image_url ? (
                   <Image source={{ uri: item.image_url }} style={styles.imagemCard} />
@@ -212,9 +215,31 @@ export default function Home() {
                   {produtoSelecionado.description || "Sem descrição disponível."}
                 </Text>
                 <View style={[styles.divisor, { backgroundColor: colors.divider }]} />
-                <Text style={[styles.modalSecao, { color: colors.text }]}>Informações</Text>
+                <Text style={[styles.modalSecao, { color: colors.text }]}>Material de Impressão</Text>
+                <View style={styles.materiaisRow}>
+                  {["PLA", "ABS", "PETG"].map((mat) => (
+                    <TouchableOpacity
+                      key={mat}
+                      style={[
+                        styles.materialChip,
+                        { borderColor: colors.border, backgroundColor: colors.background },
+                        materialSelecionado === mat && styles.materialChipAtivo,
+                      ]}
+                      onPress={() => setMaterialSelecionado(mat)}
+                    >
+                      <Text style={[
+                        styles.materialChipTexto,
+                        { color: colors.subtext },
+                        materialSelecionado === mat && styles.materialChipTextoAtivo,
+                      ]}>
+                        {mat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={[styles.modalSecao, { color: colors.text, marginTop: 16 }]}>Informações</Text>
                 {[
-                  ["cube-outline", "Materiais: PLA, ABS, PETG, Resina"],
                   ["layers-outline", "Impressão 3D de alta qualidade"],
                   ["storefront-outline", "Retirada imediata na loja"],
                   ["checkmark-circle-outline", "Acabamento profissional"],
@@ -237,7 +262,7 @@ export default function Home() {
               <TouchableOpacity
                 style={styles.modalBotaoComprar}
                 onPress={() => {
-                  adicionarAoCarrinho(produtoSelecionado)
+                  adicionarAoCarrinho({ ...produtoSelecionado, material_selecionado: materialSelecionado })
                   setProdutoSelecionado(null)
                 }}
               >
@@ -328,6 +353,15 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center",
     padding: 16, paddingBottom: 28, elevation: 10, borderTopWidth: 1, gap: 12,
   },
+  materiaisRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+  materialChip: {
+    paddingHorizontal: 20, paddingVertical: 10,
+    borderRadius: 10, borderWidth: 1.5,
+  },
+  materialChipAtivo: { backgroundColor: "#9810FA", borderColor: "#9810FA" },
+  materialChipTexto: { fontWeight: "bold", fontSize: 14 },
+  materialChipTextoAtivo: { color: "white" },
+
   modalRodapeLabel: { fontSize: 12 },
   modalRodapePreco: { fontSize: 18, fontWeight: "bold" },
   modalBotaoComprar: {
