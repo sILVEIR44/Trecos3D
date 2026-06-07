@@ -14,6 +14,7 @@ interface CartContextData {
   removerDoCarrinho: (id: string | number) => void;
   aumentarQuantidade: (id: string | number) => void;
   diminuirQuantidade: (id: string | number) => void;
+  limparCarrinho: () => void;
 }
 
 export const CartContext = createContext<CartContextData>({} as CartContextData);
@@ -62,8 +63,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }
 
+  function limparCarrinho() {
+    setCarrinho([]);
+  }
+
   return (
-    <CartContext.Provider value={{ carrinho, adicionarAoCarrinho, removerDoCarrinho, aumentarQuantidade, diminuirQuantidade }}>
+    <CartContext.Provider value={{ carrinho, adicionarAoCarrinho, removerDoCarrinho, aumentarQuantidade, diminuirQuantidade, limparCarrinho }}>
       {children}
     </CartContext.Provider>
   );

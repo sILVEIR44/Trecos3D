@@ -1,35 +1,29 @@
-import { useContext, useEffect } from "react"
-import { Tabs, useRouter } from "expo-router"
+import { useContext } from "react"
+import { Tabs, Redirect } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
 import { AuthContext } from "../../context/AuthContext"
+import { useTheme } from "../../context/ThemeContext"
 
 export default function AdminLayout() {
   const { user, isLoading } = useContext(AuthContext)
-  const router = useRouter()
+  const { colors } = useTheme()
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace("/login")
-      return
-    }
-    // Se for usuário comum, manda pra home normal
-    if (!isLoading && user && user.role === "user") {
-      router.replace("/(app)/home")
-    }
-  }, [user, isLoading])
+  if (isLoading) return null
+  if (!user) return <Redirect href="/login" />
+  if (user.role === "user") return <Redirect href="/home" />
 
-  if (isLoading || !user || user.role === "user") return null
+  const isAdmin = user.role === "admin" || user.role === "superadmin"
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: "#9810FA",
-        tabBarInactiveTintColor: "gray",
+        tabBarInactiveTintColor: colors.subtext,
         tabBarStyle: {
-          backgroundColor: "#ffffff",
+          backgroundColor: colors.tabBar,
           borderTopWidth: 1,
-          borderTopColor: "#e0e0e0",
+          borderTopColor: colors.tabBarBorder,
           height: 65,
           paddingBottom: 10,
           paddingTop: 5,
@@ -49,6 +43,7 @@ export default function AdminLayout() {
         name="produtos"
         options={{
           title: "Produtos",
+          href: isAdmin ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cube-outline" size={size} color={color} />
           ),
@@ -58,6 +53,7 @@ export default function AdminLayout() {
         name="orcamentos"
         options={{
           title: "Orçamentos",
+          href: isAdmin ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="document-text-outline" size={size} color={color} />
           ),

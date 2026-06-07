@@ -19,7 +19,7 @@ export default function Login() {
   useEffect(() => {
     if (token && user) {
       if (user.role === 'admin' || user.role === 'superadmin') {
-        router.replace("/admin");
+        router.replace("/dashboard");
       } else { 
         router.replace("/home");
       }
@@ -39,7 +39,7 @@ export default function Login() {
       alert("Logado com sucesso.");
 
       if (usuarioRecebido.role === "admin" || usuarioRecebido.role === "superadmin") {
-        router.replace("/admin");
+        router.replace("/dashboard");
       } else {
         router.replace("/home");
       }

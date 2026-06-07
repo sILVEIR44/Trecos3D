@@ -35,13 +35,12 @@ export default function AdminDashboard() {
     };
 
     useEffect(() => {
-        if (user?.role !== 'admin') {
-            alert("Acesso Negado: Apenas o Superadmin pode entrar aqui!");
+        if (user?.role !== 'admin' && user?.role !== 'superadmin') {
             router.replace("/home");
-            return; 
-    }
+            return;
+        }
         carregarDashboard();
-    }, [user]);
+    }, []);
 
     const sairDoControle = async () => {
         await signOut();

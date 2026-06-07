@@ -1,0 +1,4478 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+api-impressao-3d/.gitignore
+api-impressao-3d/LogDesenvolvimento.md
+api-impressao-3d/package.json
+api-impressao-3d/Read.me
+api-impressao-3d/src/db.js
+api-impressao-3d/src/middlewares/auth.js
+api-impressao-3d/src/server.js
+app.json
+assets/adaptive-icon.png
+assets/favicon.png
+assets/icon.png
+assets/splash-icon.png
+Documentacao_Trecos3D.docx
+index.ts
+metro.config.js
+package.json
+src/app/_layout.tsx
+src/app/(admin)/_layout.tsx
+src/app/(admin)/dashboard.tsx
+src/app/(admin)/perfil.tsx
+src/app/(app)/_layout.tsx
+src/app/(app)/admin.tsx
+src/app/(app)/aprovar-orcamentos.tsx
+src/app/(app)/carrinho.tsx
+src/app/(app)/forjar-produto.tsx
+src/app/(app)/home.tsx
+src/app/(app)/orcamento.tsx
+src/app/(app)/perfil.tsx
+src/app/home-guest.tsx
+src/app/index.tsx
+src/app/login.tsx
+src/app/recuperar.tsx
+src/app/register.tsx
+src/components/Buttom/button.tsx
+src/components/Buttom/styles.ts
+src/components/Header/index.tsx
+src/components/InfoCard/index.tsx
+src/components/InfoCard/styles.ts
+src/components/Text/index.tsx
+src/context/AuthContext.tsx
+src/context/CartContext.tsx
+src/services/authService.ts
+src/storage/authStorage.ts
+src/theme/colors.ts
+src/theme/fonts.ts
+src/theme/fontSize.ts
+src/theme/index.ts
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/app/(app)/aprovar-orcamentos.tsx">
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Image, Alert } from 'react-native';
+import { AuthContext } from '../../context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+
+export default function AprovarOrcamentos() {
+    const router = useRouter();
+    const { token } = useContext(AuthContext) as any;
+    
+    const [orcamentos, setOrcamentos] = useState<any[]>([]);
+    const [carregando, setCarregando] = useState(true);
+
+    const buscarPendentes = async () => {
+        try {
+            const urlDaAPI = `http://192.168.5.235:3000/admin/orcamentos`;
+            const resposta = await fetch(urlDaAPI, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!resposta.ok) throw new Error("Falha ao buscar orçamentos");
+            const dados = await resposta.json();
+            setOrcamentos(dados);
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Erro", "Não foi possível conectar.");
+        } finally {
+            setCarregando(false);
+        }
+    };
+
+    useEffect(() => {
+        buscarPendentes();
+    }, []);
+
+    //  (Aprovar ou Rejeitar)
+    const despacharOrdem = async (id: number, status: 'approved' | 'rejected') => {
+        try {
+            const urlDaAPI = `http://192.168.5.235:3000/quotes/${id}/status`;
+            const resposta = await fetch(urlDaAPI, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ status })
+            });
+
+            if (!resposta.ok) throw new Error("Falha ao executar a ordem");
+
+            Alert.alert("Sucesso!", `O orçamento foi ${status === 'approved' ? 'Aprovado' : 'Rejeitado'} com sucesso!`);
+            
+            // Remove da lista o orçamento
+            setOrcamentos((listaAtual) => listaAtual.filter((item) => item.id !== id));
+
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Erro", "O mensageiro falhou ao entregar a ordem.");
+        }
+    };
+
+    if (carregando) {
+        return (
+            <View style={styles.centro}>
+                <ActivityIndicator size="large" color="#FFC107" />
+                <Text style={styles.textoCarregando}>Buscando os pergaminhos...</Text>
+            </View>
+        );
+    }
+
+    return (
+        <View style={styles.container}>
+            <View style={styles.cabecalho}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.botaoVoltar}>
+                    <Ionicons name="arrow-back" size={24} color="#FFF" />
+                </TouchableOpacity>
+                <Text style={styles.titulo}>Gerir Orçamentos</Text>
+            </View>
+
+            {orcamentos.length === 0 ? (
+                <View style={styles.vazio}>
+                    <Ionicons name="checkmark-done-circle-outline" size={60} color="#28A745" />
+                    <Text style={styles.textoVazio}>O sistema está em dia.</Text>
+                    <Text style={styles.subTextoVazio}>Não há orçamentos pendentes.</Text>
+                </View>
+            ) : (
+                <FlatList
+                    data={orcamentos}
+                    keyExtractor={(item) => String(item.id)}
+                    contentContainerStyle={styles.lista}
+                    renderItem={({ item }: { item: any}) => (
+                        <View style={styles.cartao}>
+                            <View style={styles.cartaoTopo}>
+                                <Image source={{ uri: item.file_url }} style={styles.imagem} />
+                                <View style={styles.info}>
+                                    <Text style={styles.infoTexto}><Text style={styles.negrito}>Usuário ID:</Text> {item.user_id}</Text>
+                                    <Text style={styles.infoTexto}><Text style={styles.negrito}>Material:</Text> {item.material}</Text>
+                                    <Text style={styles.infoTexto}><Text style={styles.negrito}>Peso (g):</Text> {item.estimated_grams}</Text>
+                                    <Text style={styles.preco}>R$ {Number(item.calculated_price).toFixed(2)}</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.cartaoAcoes}>
+                                <TouchableOpacity 
+                                    style={[styles.botao, styles.botaoRejeitar]}
+                                    onPress={() => despacharOrdem(item.id, 'rejected')}
+                                >
+                                    <Ionicons name="close-circle-outline" size={20} color="#FFF" />
+                                    <Text style={styles.textoBotao}>Rejeitar</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity 
+                                    style={[styles.botao, styles.botaoAprovar]}
+                                    onPress={() => despacharOrdem(item.id, 'approved')}
+                                >
+                                    <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" />
+                                    <Text style={styles.textoBotao}>Aprovar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
+                />
+            )}
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    centro: { 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        backgroundColor: '#F5F5F5' 
+
+    },
+
+    textoCarregando: { 
+        marginTop: 10, 
+        fontSize: 16, 
+        color: '#555' 
+    },
+
+    container: { 
+        flex: 1, 
+        backgroundColor: '#F5F5F5' 
+    },
+
+    cabecalho: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        backgroundColor: '#000', 
+        padding: 20, 
+        paddingTop: 50, 
+        borderBottomLeftRadius: 20, 
+        borderBottomRightRadius: 20 
+    },
+
+    botaoVoltar: { 
+        marginRight: 15 
+    },
+
+    titulo: { 
+        fontSize: 20, 
+        fontWeight: 'bold', 
+        color: '#FFF' 
+    },
+
+    lista: { 
+        padding: 15 
+    },
+
+    vazio: { 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
+
+    textoVazio: { 
+        fontSize: 18, 
+        fontWeight: 'bold', 
+        color: '#333', 
+        marginTop: 10 
+    },
+
+    subTextoVazio: { 
+        fontSize: 14, 
+        color: '#777', 
+        marginTop: 5 
+    },
+
+    cartao: { 
+        backgroundColor: '#FFF', 
+        borderRadius: 12, 
+        padding: 15, 
+        marginBottom: 15, 
+        elevation: 3 
+    },
+
+    cartaoTopo: { 
+        flexDirection: 'row', 
+        marginBottom: 15 
+    },
+
+    imagem: { 
+        width: 80, 
+        height: 80, 
+        borderRadius: 8, 
+        backgroundColor: '#EEE' 
+    },
+
+    info: { 
+        flex: 1, 
+        marginLeft: 15, 
+        justifyContent: 'center' 
+    },
+
+    infoTexto: { 
+        fontSize: 14, 
+        color: '#555', 
+        marginBottom: 2 
+    },
+
+    negrito: { 
+        fontWeight: 'bold', 
+        color: '#333' 
+    },
+
+    preco: { 
+        fontSize: 18, 
+        fontWeight: 'bold', 
+        color: '#9810FA', 
+        marginTop: 5 
+    },
+
+    cartaoAcoes: { 
+        flexDirection: 'row', 
+        justifyContent: 'space-between', 
+        gap: 10 
+    },
+
+    botao: { 
+        flex: 1, 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        paddingVertical: 10, 
+        borderRadius: 8, 
+        gap: 5 
+    }, 
+
+    botaoRejeitar: { 
+        backgroundColor: '#DC3545'
+    },
+
+    botaoAprovar: { 
+        backgroundColor: '#28A745' 
+    },
+
+    textoBotao: { 
+        color: '#FFF', 
+        fontWeight: 'bold', 
+        fontSize: 15 
+    }
+});
+</file>
+
+<file path="src/app/(app)/forjar-produto.tsx">
+import React, { useState, useContext } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { AuthContext } from '../../context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import api from '../../services/authService';
+
+export default function ForjarProduto() {
+    const router = useRouter();
+    const { token } = useContext(AuthContext) as any;
+
+    const [titulo, setTitulo] = useState('');
+    const [descricao, setDescricao] = useState('');
+    const [preco, setPreco] = useState('');
+    const [estoque, setEstoque] = useState('');
+    const [imagem, setImagem] = useState('');
+    const [relatorio, setRelatorio] = useState('');
+
+    const forjarNovoProduto = async () => {
+        setRelatorio("Preparando...")
+        if (!titulo || !preco) {
+            setRelatorio("Titulo e preço ta faltando...")
+            Alert.alert("Atenção", "O título e o preço são obrigatórios para a vitrine!");
+            return;
+        }
+        setRelatorio("Enviando dados pro server...")
+        try {
+            const resposta = await api.post('/products', {
+                title: titulo,
+                description: descricao,
+                price: parseFloat(preco.replace(',', '.')),
+                stock: parseInt(estoque) || 0,
+                image_url: imagem
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            setRelatorio("Sucesso...")
+            Alert.alert("Sucesso!", "O novo produto foi adicionado à vitrine da Loja 3D!");
+            router.back(); 
+
+        } catch (error: any) {
+            Alert.alert("Erro", "Falha na criação. Verifique as credenciais ou a conexão com o servidor.");
+            const erroReal = error.response?.data?.error || error.message;
+            setRelatorio(`Erro: ${erroReal}`);
+        }
+    };
+
+    return (
+        <View style={styles.container}>
+            <View style={styles.cabecalho}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.botaoVoltar}>
+                    <Ionicons name="arrow-back" size={24} color="#FFF" />
+                </TouchableOpacity>
+                <Text style={styles.titulo}>Adicionar Produto</Text>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.formulario}>
+                <View style={styles.grupoInput}>
+                    <Text style={styles.label}>Nome do produto *</Text>
+                    <TextInput 
+                        style={styles.input} 
+                        placeholder="Ex: Dragão Articulado 3D" 
+                        value={titulo} 
+                        onChangeText={setTitulo} 
+                    />
+                </View>
+
+                <View style={styles.grupoInput}>
+                    <Text style={styles.label}>Preço</Text>
+                    <TextInput 
+                        style={styles.input} 
+                        placeholder="Ex: 45.50" 
+                        keyboardType="numeric" 
+                        value={preco} 
+                        onChangeText={setPreco} 
+                    />
+                </View>
+
+                <View style={styles.grupoInput}>
+                    <Text style={styles.label}>Estoque Inicial</Text>
+                    <TextInput 
+                        style={styles.input} 
+                        placeholder="Ex: 10" 
+                        keyboardType="numeric" 
+                        value={estoque} 
+                        onChangeText={setEstoque} 
+                    />
+                </View>
+
+                <View style={styles.grupoInput}>
+                    <Text style={styles.label}>URL da Imagem</Text>
+                    <TextInput 
+                        style={styles.input} 
+                        placeholder="Link direto para a foto (.jpg ou .png)" 
+                        value={imagem} 
+                        onChangeText={setImagem} 
+                    />
+                </View>
+
+                <View style={styles.grupoInput}>
+                    <Text style={styles.label}>Descrição Completa</Text>
+                    <TextInput 
+                        style={[styles.input, styles.inputArea]} 
+                        placeholder="Detalhes sobre o material, tamanho, etc." 
+                        multiline
+                        numberOfLines={4}
+                        value={descricao} 
+                        onChangeText={setDescricao} 
+                    />
+                </View>
+
+                <TouchableOpacity style={styles.botaoForjar} onPress={forjarNovoProduto}>
+                    <Ionicons name="flame" size={20} color="#FFF" />
+                    <Text style={styles.textoBotaoForjar}>Adicionar à Vitrine</Text>
+                </TouchableOpacity>
+                
+                {relatorio !== '' && (
+                    <View style={styles.caixaRelatorio}>
+                        <Text style={styles.textoRelatorio}>{relatorio}</Text>
+                    </View>
+                )}
+            </ScrollView>
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#F5F5F5' },
+    cabecalho: { 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        backgroundColor: '#000', 
+        padding: 20, 
+        paddingTop: 50, 
+        borderBottomLeftRadius: 20, 
+        borderBottomRightRadius: 20 
+    },
+    botaoVoltar: { marginRight: 15 },
+    titulo: { fontSize: 20, fontWeight: 'bold', color: '#FFF' },
+    formulario: { padding: 20 },
+    grupoInput: { marginBottom: 15 },
+    label: { fontSize: 14, fontWeight: 'bold', color: '#444', marginBottom: 5 },
+    input: { 
+        backgroundColor: '#FFF', 
+        borderWidth: 1, 
+        borderColor: '#DDD', 
+        borderRadius: 8, 
+        paddingHorizontal: 15, 
+        height: 50, 
+        fontSize: 15 
+    },
+    inputArea: { height: 100, textAlignVertical: 'top', paddingTop: 15 },
+    botaoForjar: { 
+        backgroundColor: '#6F42C1', 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        paddingVertical: 15, 
+        borderRadius: 8, 
+        marginTop: 10,
+        gap: 8,
+        elevation: 3 
+    },
+    textoBotaoForjar: { 
+        color: '#FFF', 
+        fontWeight: 'bold', 
+        fontSize: 16 
+    },
+    caixaRelatorio: {
+        marginTop: 20,
+        padding: 15,
+        backgroundColor: '#FFE5E5',
+        borderLeftWidth: 5,
+        borderLeftColor: '#D8000C',
+        borderRadius: 5,
+    },
+    textoRelatorio: {
+        color: '#D8000C',
+        fontWeight: 'bold',
+        fontSize: 16,
+        textAlign: 'center'
+    }
+});
+</file>
+
+<file path=".gitignore">
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+</file>
+
+<file path="api-impressao-3d/.gitignore">
+node_modules/
+.env
+</file>
+
+<file path="api-impressao-3d/LogDesenvolvimento.md">
+Fiz cadastro e login funcionar...
+Adicionei uma forma de colocar imagens nos produtos, direto pelo supabase
+Fiz uma permanência de login=>
+Instala isso: npx expo install @react-native-async-storage/async-storage
+
+Adicionei a tela de perfil e carrinho com bottom navigation
+Dei vida ao carrinho
+Fiz a função de deslogar funcionar
+Arrumei um pouco do layout no celular
+Máquina de orçamentos: Tirar a foto, preencher a descrição e calcular o preço
+Para ter acesso a camera, instala isso:
+npx expo install expo-image-picker
+Fazer a api receber imagens
+npm install multer @supabase/supabase-js (dentro do terminal da API)
+precisa de um arquivo .env com as chaves do Supabase e rodar o servidor em uma aba e o front em outra
+</file>
+
+<file path="api-impressao-3d/src/db.js">
+const { Pool } = require('pg');
+require('dotenv').config();
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false // Exigência do Supabase para nuvem
+  }
+});
+
+pool.connect()
+  .then(() => console.log(' Conexão com o Supabase (PostgreSQL) estabelecida com sucesso!'))
+  .catch(err => console.error(' Erro ao conectar com o banco de dados:', err.stack));
+
+module.exports = pool;
+</file>
+
+<file path="api-impressao-3d/src/middlewares/auth.js">
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+//Verifica se o  utilizador ta logado/tem o token
+function verificarToken(req, res, next) {
+    //tenta ler o token do header
+    const authHeader = req.headers['authorization'];
+
+    if (!authHeader) {
+        return res.status(403).json({ error: 'Nenhum token foi apresentado.'});
+    }
+    //O token vem no formato "Bearer token_aqui", então precisamos separarr
+    const token = authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(403).json({ error: 'Token malformado.'});
+    }
+
+    //Verifica se o token é válido
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ error: 'Token falso ou expirado! Acesso negado.'});
+        }
+        //Se o token for válido, guarda as informações decodificadas (como userId e role) na requisição para que as rotas possam usar
+        req.userId = decoded.userId;
+        req.userRole = decoded.role;
+        //Permite que a requisição continue para a próxima etapa (a rota protegida)
+        next(); 
+    });
+}
+//Verifica se o utilizador é superadmin
+function verificarAdmin(req, res, next) {
+    if (req.userRole !== 'admin') {
+        return res.status(403).json({ error: 'Acesso negado! Apenas o Superadmin tem permissão para entrar aqui.'});
+    }
+    next();//pd passar 
+}
+
+module.exports = { verificarToken,
+    verificarAdmin };
+</file>
+
+<file path="index.ts">
+import { registerRootComponent } from 'expo';
+
+import App from './App';
+
+// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
+// It also ensures that whether you load the app in Expo Go or in a native build,
+// the environment is set up appropriately
+registerRootComponent(App);
+</file>
+
+<file path="metro.config.js">
+const { getDefaultConfig } = require('expo/metro-config');
+
+const config = getDefaultConfig(__dirname);
+
+module.exports = config;
+</file>
+
+<file path="src/app/(admin)/_layout.tsx">
+import { useContext, useEffect } from "react"
+import { Tabs, useRouter } from "expo-router"
+import { Ionicons } from "@expo/vector-icons"
+import { AuthContext } from "../../context/AuthContext"
+
+export default function AdminLayout() {
+  const { user, isLoading } = useContext(AuthContext)
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace("/login")
+      return
+    }
+    // Se for usuário comum, manda pra home normal
+    if (!isLoading && user && user.role === "user") {
+      router.replace("/(app)/home")
+    }
+  }, [user, isLoading])
+
+  if (isLoading || !user || user.role === "user") return null
+
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: "#9810FA",
+        tabBarInactiveTintColor: "gray",
+        tabBarStyle: {
+          backgroundColor: "#ffffff",
+          borderTopWidth: 1,
+          borderTopColor: "#e0e0e0",
+          height: 65,
+          paddingBottom: 10,
+          paddingTop: 5,
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="dashboard"
+        options={{
+          title: "Início",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="grid-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="produtos"
+        options={{
+          title: "Produtos",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cube-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="orcamentos"
+        options={{
+          title: "Orçamentos",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="document-text-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="perfil"
+        options={{
+          title: "Perfil",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
+          ),
+        }}
+      />
+    </Tabs>
+  )
+}
+</file>
+
+<file path="src/app/(admin)/dashboard.tsx">
+import { useEffect, useState, useContext } from "react"
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native"
+import { Ionicons } from "@expo/vector-icons"
+import { LinearGradient } from "expo-linear-gradient"
+import api from "../../services/authService"
+import { AuthContext } from "../../context/AuthContext"
+
+export default function Dashboard() {
+  const { user } = useContext(AuthContext)
+  const [dados, setDados] = useState<any>(null)
+  const [carregando, setCarregando] = useState(true)
+
+  async function buscarDashboard() {
+    try {
+      const response = await api.get("/dashboard")
+      setDados(response.data.dashboard)
+    } catch (error) {
+      console.log("Erro ao buscar dashboard:", error)
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    buscarDashboard()
+  }, [])
+
+  if (carregando) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#9810FA" />
+      </View>
+    )
+  }
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.conteudo}>
+      {/* Header */}
+      <LinearGradient colors={["#9810FA", "#E60076"]} style={styles.header}>
+        <Text style={styles.headerSub}>Bem-vindo,</Text>
+        <Text style={styles.headerNome}>{user?.name}</Text>
+        <View style={styles.headerBadge}>
+          <Text style={styles.headerBadgeTexto}>{user?.role}</Text>
+        </View>
+      </LinearGradient>
+
+      {/* Cards de métricas */}
+      <View style={styles.cards}>
+        <View style={[styles.card, { backgroundColor: "#7C3AED" }]}>
+          <Ionicons name="people-outline" size={28} color="white" />
+          <Text style={styles.cardValor}>—</Text>
+          <Text style={styles.cardLabel}>Clientes</Text>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: "#9810FA" }]}>
+          <Ionicons name="cube-outline" size={28} color="white" />
+          <Text style={styles.cardValor}>{dados?.total_produtos_vitrine ?? 0}</Text>
+          <Text style={styles.cardLabel}>Produtos</Text>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: "#E60076" }]}>
+          <Ionicons name="document-text-outline" size={28} color="white" />
+          <Text style={styles.cardValor}>{dados?.orcamentos_pendentes ?? 0}</Text>
+          <Text style={styles.cardLabel}>Orçamentos</Text>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: "#F59E0B" }]}>
+          <Ionicons name="receipt-outline" size={28} color="white" />
+          <Text style={styles.cardValor}>{dados?.total_pedidos ?? 0}</Text>
+          <Text style={styles.cardLabel}>Pedidos</Text>
+        </View>
+      </View>
+
+      {/* Receita total */}
+      <View style={styles.receita}>
+        <Text style={styles.receitaLabel}>Receita Total</Text>
+        <Text style={styles.receitaValor}>
+          R$ {Number(dados?.faturamento_total ?? 0).toFixed(2)}
+        </Text>
+        <Text style={styles.receitaSub}>{dados?.total_pedidos ?? 0} pedidos realizados</Text>
+      </View>
+
+      {/* Atualizar */}
+      <TouchableOpacity style={styles.botaoAtualizar} onPress={buscarDashboard}>
+        <Ionicons name="refresh-outline" size={18} color="#9810FA" />
+        <Text style={styles.botaoAtualizarTexto}>Atualizar dados</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  )
+}
+
+const styles = StyleSheet.create({
+  loading: { flex: 1, alignItems: "center", justifyContent: "center" },
+
+  container: { flex: 1, backgroundColor: "#F5F5F5" },
+  conteudo: { paddingBottom: 40 },
+
+  header: {
+    paddingTop: 55,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+  },
+  headerSub: { color: "rgba(255,255,255,0.8)", fontSize: 14 },
+  headerNome: { color: "white", fontSize: 22, fontWeight: "bold", marginTop: 2 },
+  headerBadge: {
+    alignSelf: "flex-start",
+    marginTop: 8,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  headerBadgeTexto: { color: "white", fontSize: 12, textTransform: "capitalize" },
+
+  cards: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    padding: 16,
+    gap: 12,
+  },
+  card: {
+    width: "47%",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    gap: 6,
+  },
+  cardValor: { color: "white", fontSize: 26, fontWeight: "bold" },
+  cardLabel: { color: "rgba(255,255,255,0.85)", fontSize: 13 },
+
+  receita: {
+    backgroundColor: "white",
+    marginHorizontal: 16,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: "center",
+    elevation: 2,
+    marginBottom: 16,
+  },
+  receitaLabel: { fontSize: 14, color: "#888", marginBottom: 4 },
+  receitaValor: { fontSize: 32, fontWeight: "bold", color: "#222" },
+  receitaSub: { fontSize: 13, color: "#AAA", marginTop: 4 },
+
+  botaoAtualizar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#9810FA",
+  },
+  botaoAtualizarTexto: { color: "#9810FA", fontWeight: "bold" },
+})
+</file>
+
+<file path="src/app/(admin)/perfil.tsx">
+import { useContext } from "react"
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native"
+import { useRouter } from "expo-router"
+import { Ionicons } from "@expo/vector-icons"
+import { AuthContext } from "../../context/AuthContext"
+
+export default function PerfilAdmin() {
+  const router = useRouter()
+  const { user, signOut } = useContext(AuthContext)
+
+  async function realizarLogout() {
+    try {
+      await signOut()
+      router.replace("/login")
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível sair. Tente novamente.")
+    }
+  }
+
+  function confirmarSaida() {
+    Alert.alert("Fazer Logout", "Tem certeza que deseja sair?", [
+      { text: "Ficar", style: "cancel" },
+      { text: "Sair", style: "destructive", onPress: realizarLogout },
+    ])
+  }
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Ionicons name="person-circle-outline" size={100} color="#9810FA" />
+        <Text style={styles.nome}>{user?.name ?? "Admin"}</Text>
+        <Text style={styles.email}>{user?.email ?? ""}</Text>
+        <View style={styles.badge}>
+          <Text style={styles.badgeTexto}>{user?.role ?? "admin"}</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity style={styles.botaoSair} onPress={confirmarSaida}>
+        <Ionicons name="log-out-outline" size={22} color="white" />
+        <Text style={styles.botaoSairTexto}>Fazer Logout</Text>
+      </TouchableOpacity>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#F5F5F5", alignItems: "center", justifyContent: "center", padding: 20 },
+  header: { alignItems: "center", marginBottom: 50 },
+  nome: { fontSize: 24, fontWeight: "bold", color: "#222", marginTop: 12 },
+  email: { fontSize: 14, color: "#888", marginTop: 4 },
+  badge: { marginTop: 10, backgroundColor: "#E9D4FF", paddingHorizontal: 14, paddingVertical: 4, borderRadius: 20 },
+  badgeTexto: { color: "#9810FA", fontWeight: "bold", fontSize: 13, textTransform: "capitalize" },
+  botaoSair: { backgroundColor: "#9810FA", flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 14, paddingHorizontal: 40, borderRadius: 12, gap: 10, width: "80%", elevation: 3 },
+  botaoSairTexto: { color: "white", fontWeight: "bold", fontSize: 16 },
+})
+</file>
+
+<file path="src/app/(app)/admin.tsx">
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { AuthContext } from '../../context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+
+export default function AdminDashboard() {
+    const { token, user, signOut } = useContext(AuthContext);
+    const router = useRouter();
+    const [ dados, setDados ] = useState<any>(null);
+    const [ carregando, setCarregando ] = useState(true);
+    
+    const carregarDashboard = async () => {
+        try {
+            const urlAPI = `http://192.168.5.235:3000/dashboard`;
+
+            const resposta = await fetch(urlAPI, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!resposta.ok) throw new Error("Acesso negado!");
+            const data = await resposta.json();
+            setDados(data.dashboard);
+
+        } catch (error) {
+            console.error(error);
+            alert("Acesso negado.");
+            router.replace("/home")
+        } finally {
+            setCarregando(false);
+        }
+    };
+
+    useEffect(() => {
+        if (user?.role !== 'admin') {
+            alert("Acesso Negado: Apenas o Superadmin pode entrar aqui!");
+            router.replace("/home");
+            return; 
+    }
+        carregarDashboard();
+    }, [user]);
+
+    const sairDoControle = async () => {
+        await signOut();
+        router.replace("/login");
+    };
+
+    if (carregando) {
+        return (
+            <View style={ styles.centro }>
+                <ActivityIndicator size="large" color="#000" />
+                <Text style={ styles.textoCarregando }>Quase lá, aguarde um momento...</Text>
+            </View>
+        );
+    }
+
+    return (
+      <ScrollView style={styles.container}>
+      <View style={styles.cabecalho}>
+        <View>
+          <Text style={styles.titulo}>Painel do Superadmin</Text>
+          <Text style={styles.subtitulo}>Bem-vindo, {user?.name || "Chefe"}</Text>
+        </View>
+        <TouchableOpacity onPress={sairDoControle} style={styles.botaoSair}>
+          <Ionicons name="log-out-outline" size={24} color="#FFF" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.cartoesContainer}>
+        {/* Cartão de Faturamento */}
+        <View style={[styles.cartao, { borderLeftColor: '#28A745' }]}>
+          <Ionicons name="cash-outline" size={30} color="#28A745" />
+          <Text style={styles.cartaoTitulo}>Faturamento Total</Text>
+          <Text style={styles.cartaoValor}>R$ {dados?.faturamento_total?.toFixed(2) || "0.00"}</Text>
+        </View>
+
+        {/* Cartão de Pedidos */}
+        <View style={[styles.cartao, { borderLeftColor: '#007BFF' }]}>
+          <Ionicons name="cube-outline" size={30} color="#007BFF" />
+          <Text style={styles.cartaoTitulo}>Total de Pedidos</Text>
+          <Text style={styles.cartaoValor}>{dados?.total_pedidos || 0}</Text>
+        </View>
+
+        {/* Cartão de Orçamentos Pendentes */}
+        <View style={[styles.cartao, { borderLeftColor: '#FFC107' }]}>
+          <Ionicons name="document-text-outline" size={30} color="#FFC107" />
+          <Text style={styles.cartaoTitulo}>Orçamentos Pendentes</Text>
+          <Text style={styles.cartaoValor}>{dados?.orcamentos_pendentes || 0}</Text>
+        </View>
+
+        {/* Cartão de Vitrine */}
+        <View style={[styles.cartao, { borderLeftColor: '#6F42C1' }]}>
+          <Ionicons name="pricetags-outline" size={30} color="#6F42C1" />
+          <Text style={styles.cartaoTitulo}>Produtos na Vitrine</Text>
+          <Text style={styles.cartaoValor}>{dados?.total_produtos_vitrine || 0}</Text>
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  centro: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+},
+  textoCarregando: { 
+    marginTop: 10, 
+    fontSize: 16, 
+    color: '#555' 
+
+  },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F5F5F5' 
+
+  },
+  cabecalho: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    backgroundColor: '#000', 
+    padding: 20, 
+    paddingTop: 50, 
+    borderBottomLeftRadius: 20, 
+    borderBottomRightRadius: 20 
+  },
+  titulo: { 
+    fontSize: 22, 
+    fontWeight: 'bold', 
+    color: '#FFF' 
+
+  },
+  subtitulo: { 
+    fontSize: 14, 
+    color: '#AAA', 
+    marginTop: 5 
+
+  },
+  botaoSair: { 
+    backgroundColor: '#333', 
+    padding: 10, borderRadius: 10 
+
+  },
+  cartoesContainer: { 
+    padding: 20, 
+    marginTop: 10 
+
+  },
+  cartao: { 
+    backgroundColor: '#FFF', 
+    padding: 20, 
+    borderRadius: 12, 
+    marginBottom: 15, 
+    borderLeftWidth: 5, 
+    elevation: 3, 
+    shadowColor: "#000", 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.1, 
+    shadowRadius: 4 
+  },
+  cartaoTitulo: { 
+    fontSize: 14, 
+    color: '#666', 
+    marginTop: 10 
+
+  },
+  cartaoValor: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    color: '#333', 
+    marginTop: 5 
+
+  }
+});
+</file>
+
+<file path="src/app/home-guest.tsx">
+import { useState, useEffect } from "react"
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+  Image,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  Modal,
+} from "react-native"
+import { LinearGradient } from "expo-linear-gradient"
+import { Ionicons } from "@expo/vector-icons"
+import { useRouter } from "expo-router"
+import api from "../services/authService"
+
+const CATEGORIAS = ["Todos", "Brinquedos", "Utilitários", "Decoração"]
+
+export default function HomeGuest() {
+  const router = useRouter()
+  const [produtos, setProdutos] = useState<any[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const [busca, setBusca] = useState("")
+  const [categoriaAtiva, setCategoriaAtiva] = useState("Todos")
+  const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null)
+
+  async function buscarProdutos() {
+    try {
+      const response = await api.get("/products")
+      setProdutos(response.data)
+    } catch (error) {
+      console.log("Erro ao buscar produtos:", error)
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    buscarProdutos()
+  }, [])
+
+  const produtosFiltrados = produtos.filter((p) => {
+    const nomeOk = p.title?.toLowerCase().includes(busca.toLowerCase())
+    const categoriaOk = categoriaAtiva === "Todos" || p.category === categoriaAtiva
+    return nomeOk && categoriaOk
+  })
+
+  // Qualquer ação que precise de login manda para o login
+  function irParaLogin() {
+    setProdutoSelecionado(null)
+    router.replace("/login")
+  }
+
+  function renderizarProduto({ item }: any) {
+    return (
+      <TouchableOpacity style={styles.card} onPress={() => setProdutoSelecionado(item)}>
+        {item.image_url ? (
+          <Image source={{ uri: item.image_url }} style={styles.imagemCard} />
+        ) : (
+          <View style={styles.imagemVazia} />
+        )}
+
+        <View style={styles.badgeEstoque}>
+          <Text style={styles.badgeTexto}>Em Estoque</Text>
+        </View>
+
+        {item.category ? (
+          <View style={styles.badgeCategoria}>
+            <Text style={styles.badgeCategoriaTexto}>{item.category}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardTitulo} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.cardDescricao} numberOfLines={2}>{item.description}</Text>
+          <View style={styles.cardRodape}>
+            <Text style={styles.cardPreco}>R$ {Number(item.price).toFixed(2)}</Text>
+            <TouchableOpacity style={styles.botaoComprar} onPress={irParaLogin}>
+              <Text style={styles.botaoComprarTexto}>Comprar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    )
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <LinearGradient colors={["#9810FA", "#E60076"]} style={styles.header}>
+        <View style={styles.headerTopo}>
+          <Text style={styles.headerLogo}>Loja 3D</Text>
+          {/* Botão de login no canto */}
+          <TouchableOpacity style={styles.botaoLogin} onPress={irParaLogin}>
+            <Ionicons name="log-in-outline" size={18} color="#9810FA" />
+            <Text style={styles.botaoLoginTexto}>Entrar</Text>
+          </TouchableOpacity>
+        </View>
+
+      </LinearGradient>
+
+      {/* Busca */}
+      <View style={styles.buscaContainer}>
+        <Ionicons name="search-outline" size={18} color="#888" style={styles.buscaIcone} />
+        <TextInput
+          style={styles.buscaInput}
+          placeholder="Buscar produtos..."
+          placeholderTextColor="#888"
+          value={busca}
+          onChangeText={setBusca}
+        />
+      </View>
+
+      {/* Filtros */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filtrosScroll}
+        contentContainerStyle={styles.filtrosConteudo}
+      >
+        {CATEGORIAS.map((cat) => (
+          <TouchableOpacity
+            key={cat}
+            style={[styles.filtro, categoriaAtiva === cat && styles.filtroAtivo]}
+            onPress={() => setCategoriaAtiva(cat)}
+          >
+            <Text style={[styles.filtroTexto, categoriaAtiva === cat && styles.filtroTextoAtivo]}>
+              {cat}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Lista */}
+      {carregando ? (
+        <ActivityIndicator size="large" color="#9810FA" style={{ marginTop: 40 }} />
+      ) : (
+        <FlatList
+          data={produtosFiltrados}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderizarProduto}
+          contentContainerStyle={styles.lista}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <Text style={styles.listaVazia}>Nenhum produto encontrado.</Text>
+          }
+        />
+      )}
+
+      {/* Modal detalhe */}
+      <Modal
+        visible={produtoSelecionado !== null}
+        animationType="slide"
+        onRequestClose={() => setProdutoSelecionado(null)}
+      >
+        {produtoSelecionado && (
+          <View style={styles.modalContainer}>
+            <TouchableOpacity
+              style={styles.modalBotaoFechar}
+              onPress={() => setProdutoSelecionado(null)}
+            >
+              <Ionicons name="arrow-back" size={24} color="#222" />
+            </TouchableOpacity>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {produtoSelecionado.image_url ? (
+                <Image source={{ uri: produtoSelecionado.image_url }} style={styles.modalImagem} />
+              ) : (
+                <View style={styles.modalImagemVazia}>
+                  <Ionicons name="cube-outline" size={80} color="#CCC" />
+                </View>
+              )}
+
+              <View style={styles.modalConteudo}>
+                <View style={[styles.badgeEstoque, { position: "relative", top: 0, right: 0, alignSelf: "flex-start", marginBottom: 12 }]}>
+                  <Text style={styles.badgeTexto}>✓ Em Estoque</Text>
+                </View>
+
+                <Text style={styles.modalTitulo}>{produtoSelecionado.title}</Text>
+                <Text style={styles.modalPreco}>R$ {Number(produtoSelecionado.price).toFixed(2)}</Text>
+
+                <View style={styles.divisor} />
+
+                <Text style={styles.modalSecao}>Descrição</Text>
+                <Text style={styles.modalDescricao}>
+                  {produtoSelecionado.description || "Sem descrição disponível."}
+                </Text>
+
+                <View style={styles.divisor} />
+
+                <Text style={styles.modalSecao}>Informações</Text>
+                <View style={styles.infoLinha}>
+                  <Ionicons name="cube-outline" size={18} color="#9810FA" />
+                  <Text style={styles.infoTexto}>Materiais: PLA, ABS, PETG, Resina</Text>
+                </View>
+                <View style={styles.infoLinha}>
+                  <Ionicons name="layers-outline" size={18} color="#9810FA" />
+                  <Text style={styles.infoTexto}>Impressão 3D de alta qualidade</Text>
+                </View>
+                <View style={styles.infoLinha}>
+                  <Ionicons name="storefront-outline" size={18} color="#9810FA" />
+                  <Text style={styles.infoTexto}>Retirada imediata na loja</Text>
+                </View>
+              </View>
+            </ScrollView>
+
+            {/* Rodapé — manda pro login */}
+            <View style={styles.modalRodape}>
+              <View>
+                <Text style={styles.modalRodapeLabel}>Total</Text>
+                <Text style={styles.modalRodapePreco}>
+                  R$ {Number(produtoSelecionado.price).toFixed(2)}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.modalBotaoComprar} onPress={irParaLogin}>
+                <Ionicons name="log-in-outline" size={20} color="white" />
+                <Text style={styles.modalBotaoComprarTexto}>Entre para Comprar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </Modal>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#F5F5F5" },
+
+  header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16 },
+  headerTopo: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  headerLogo: { fontSize: 20, fontWeight: "bold", color: "white" },
+  botaoLogin: {
+    backgroundColor: "white",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+  },
+  botaoLoginTexto: { color: "#9810FA", fontWeight: "bold", fontSize: 13 },
+
+  banner: { flexDirection: "row", gap: 10 },
+  bannerCard: { flex: 1, borderRadius: 10, padding: 12 },
+  bannerTitulo: { color: "white", fontWeight: "bold", fontSize: 13, marginBottom: 4 },
+  bannerSub: { color: "white", fontSize: 11, opacity: 0.9 },
+
+  buscaContainer: {
+    flexDirection: "row", alignItems: "center", backgroundColor: "white",
+    marginHorizontal: 16, marginTop: 14, borderRadius: 10, paddingHorizontal: 12, elevation: 2,
+  },
+  buscaIcone: { marginRight: 8 },
+  buscaInput: { flex: 1, height: 42, fontSize: 14, color: "#333" },
+
+  filtrosScroll: { marginTop: 12, maxHeight: 40 },
+  filtrosConteudo: { paddingHorizontal: 16, gap: 8 },
+  filtro: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, backgroundColor: "white", borderWidth: 1, borderColor: "#DDD" },
+  filtroAtivo: { backgroundColor: "#9810FA", borderColor: "#9810FA" },
+  filtroTexto: { fontSize: 13, color: "#555" },
+  filtroTextoAtivo: { color: "white", fontWeight: "bold" },
+
+  lista: { padding: 16, gap: 14 },
+  listaVazia: { textAlign: "center", marginTop: 50, color: "#888", fontSize: 15 },
+
+  card: { backgroundColor: "white", borderRadius: 12, overflow: "hidden", elevation: 2 },
+  imagemCard: { width: "100%", height: 180, backgroundColor: "#EEE" },
+  imagemVazia: { width: "100%", height: 180, backgroundColor: "#DDD" },
+  badgeEstoque: { position: "absolute", top: 10, right: 10, backgroundColor: "#22C55E", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
+  badgeTexto: { color: "white", fontSize: 11, fontWeight: "bold" },
+  badgeCategoria: { position: "absolute", top: 10, left: 10, backgroundColor: "#9810FA22", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
+  badgeCategoriaTexto: { color: "#9810FA", fontSize: 11, fontWeight: "bold" },
+  cardInfo: { padding: 12 },
+  cardTitulo: { fontSize: 16, fontWeight: "bold", color: "#222", marginBottom: 4 },
+  cardDescricao: { fontSize: 13, color: "#666", marginBottom: 10 },
+  cardRodape: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  cardPreco: { fontSize: 17, fontWeight: "bold", color: "#222" },
+  botaoComprar: { backgroundColor: "#1A1A1A", paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8 },
+  botaoComprarTexto: { color: "white", fontWeight: "bold", fontSize: 14 },
+
+  modalContainer: { flex: 1, backgroundColor: "#F5F5F5" },
+  modalBotaoFechar: { position: "absolute", top: 50, left: 16, zIndex: 10, backgroundColor: "white", borderRadius: 20, padding: 8, elevation: 3 },
+  modalImagem: { width: "100%", height: 320, backgroundColor: "#EEE" },
+  modalImagemVazia: { width: "100%", height: 320, backgroundColor: "#EEE", alignItems: "center", justifyContent: "center" },
+  modalConteudo: { backgroundColor: "white", borderTopLeftRadius: 20, borderTopRightRadius: 20, marginTop: -20, padding: 20, paddingBottom: 120 },
+  modalTitulo: { fontSize: 22, fontWeight: "bold", color: "#222", marginBottom: 8 },
+  modalPreco: { fontSize: 26, fontWeight: "bold", color: "#9810FA", marginBottom: 16 },
+  divisor: { height: 1, backgroundColor: "#EEE", marginVertical: 16 },
+  modalSecao: { fontSize: 15, fontWeight: "bold", color: "#444", marginBottom: 10 },
+  modalDescricao: { fontSize: 14, color: "#666", lineHeight: 22 },
+  infoLinha: { flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 10 },
+  infoTexto: { fontSize: 14, color: "#555" },
+  modalRodape: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "white", flexDirection: "row", alignItems: "center", padding: 16, paddingBottom: 28, elevation: 10, borderTopWidth: 1, borderTopColor: "#EEE", gap: 12 },
+  modalRodapeLabel: { fontSize: 12, color: "#888" },
+  modalRodapePreco: { fontSize: 18, fontWeight: "bold", color: "#222" },
+  modalBotaoComprar: { flex: 1, backgroundColor: "#9810FA", flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 14, borderRadius: 12, gap: 8 },
+  modalBotaoComprarTexto: { color: "white", fontWeight: "bold", fontSize: 15 },
+})
+</file>
+
+<file path="src/components/Header/index.tsx">
+
+</file>
+
+<file path="src/components/InfoCard/index.tsx">
+import { View } from "react-native";
+import { Text } from "@/components/Text";
+import { styles } from "./styles";
+
+interface Props {
+  titulo: string;
+  texto: string;
+  borderColor: string;
+  iconBg: string;
+  icon: React.ReactNode;
+}
+
+export function InfoCard({ titulo, texto, borderColor, iconBg, icon }: Props) {
+  return (
+    <View style={[styles.box, {borderColor: borderColor}]}>
+      <View style={[styles.backIcon3, {backgroundColor: iconBg}]}>
+        {icon}
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.boxT}>{titulo}</Text>
+        <Text style={styles.boxTxt}>
+          {texto}
+        </Text>
+      </View>
+    </View>
+  );
+}
+</file>
+
+<file path="src/components/InfoCard/styles.ts">
+import { StyleSheet } from "react-native";
+import { theme } from "@/theme";
+
+export const styles = StyleSheet.create({
+ box: {
+    backgroundColor: theme.colors.white,
+    flexDirection: "row",
+    padding: 20,
+    borderRadius: 20,
+    elevation: 5,
+    borderWidth: 2,
+    gap: 20,
+    width: "100%",
+    marginBottom: 10,
+  },
+   backIcon3: {
+    borderRadius: 10,
+    padding: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "flex-start",
+  },
+  boxT: {
+    fontSize: theme.fontSize.lg,
+    fontFamily: theme.fonts.bold,
+  },
+  boxTxt: {
+    textAlign: "justify",
+  },
+});
+</file>
+
+<file path="src/components/Text/index.tsx">
+import { Text as RNText, TextProps, StyleSheet } from "react-native";
+
+import { theme } from "@/theme";
+
+export function Text(props: TextProps) {
+  return (
+    <RNText
+      {...props}
+      style={[styles.text, props.style]}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  text: {
+    fontFamily: theme.fonts.regular,
+  },
+});
+</file>
+
+<file path="src/storage/authStorage.ts">
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const AUTH_KEY = '@Trecos3D:userToken';
+
+export const saveToken = async (token: string): Promise<void> => {
+  await AsyncStorage.setItem(AUTH_KEY, token);
+};
+
+export const getToken = async (): Promise<string | null> => {
+  return await AsyncStorage.getItem(AUTH_KEY);
+};
+
+export const removeToken = async (): Promise<void> => {
+  await AsyncStorage.removeItem(AUTH_KEY);
+};
+</file>
+
+<file path="src/theme/fonts.ts">
+export const fonts = {
+  regular: "Inter_400Regular",
+  bold: "Inter_700Bold",
+}
+</file>
+
+<file path="api-impressao-3d/package.json">
+{
+  "name": "api-impressao-3d",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.107.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
+    "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
+</file>
+
+<file path="src/components/Buttom/styles.ts">
+import { StyleSheet } from "react-native";
+import { theme } from "@/theme";
+
+export const styles = StyleSheet.create({
+  botao: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 15,
+    borderRadius: 20,
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%'
+  },
+  txt: {
+    fontSize: theme.fontSize.lg,
+  },
+});
+</file>
+
+<file path="src/context/CartContext.tsx">
+import React, { createContext, useState, ReactNode } from 'react';
+
+export interface ProdutoCarrinho {
+  id: string | number;
+  title: string;
+  price: number;
+  image_url?: string;
+  quantidade: number;
+}
+
+interface CartContextData {
+  carrinho: ProdutoCarrinho[];
+  adicionarAoCarrinho: (produto: any) => void;
+  removerDoCarrinho: (id: string | number) => void;
+  aumentarQuantidade: (id: string | number) => void;
+  diminuirQuantidade: (id: string | number) => void;
+}
+
+export const CartContext = createContext<CartContextData>({} as CartContextData);
+
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [carrinho, setCarrinho] = useState<ProdutoCarrinho[]>([]);
+
+  function adicionarAoCarrinho(produto: any) {
+    const itemExistente = carrinho.find(item => item.id === produto.id);
+
+    if (itemExistente) {
+      setCarrinho(
+        carrinho.map(item =>
+          item.id === produto.id
+            ? { ...item, quantidade: item.quantidade + 1 }
+            : item
+        )
+      );
+      alert("Uma nova unidade foi adicionada ao seu carrinho!");
+    } else {
+      setCarrinho([...carrinho, { ...produto, quantidade: 1 }]);
+      alert("Novo item adicionado ao carrinho!");
+    }
+  }
+
+  function removerDoCarrinho(id: string | number) {
+    setCarrinho(carrinho.filter(item => item.id !== id));
+  }
+
+  function aumentarQuantidade(id: string | number) {
+    setCarrinho(
+      carrinho.map(item =>
+        item.id === id ? { ...item, quantidade: item.quantidade + 1 } : item
+      )
+    );
+  }
+
+  function diminuirQuantidade(id: string | number) {
+    // Se quantidade for 1 e diminuir, remove o item
+    setCarrinho(
+      carrinho
+        .map(item =>
+          item.id === id ? { ...item, quantidade: item.quantidade - 1 } : item
+        )
+        .filter(item => item.quantidade > 0)
+    );
+  }
+
+  return (
+    <CartContext.Provider value={{ carrinho, adicionarAoCarrinho, removerDoCarrinho, aumentarQuantidade, diminuirQuantidade }}>
+      {children}
+    </CartContext.Provider>
+  );
+}
+</file>
+
+<file path="src/theme/fontSize.ts">
+export const fontSize = {
+  xs: 12,
+  sm: 14,
+  md: 16,
+  lg: 20,
+  xl: 24,
+  xxl: 32,
+  titulo: 36,
+};
+</file>
+
+<file path="src/theme/index.ts">
+import { colors } from "./colors";
+import {fontSize} from "./fontSize";
+import {fonts} from "./fonts";
+
+export const theme = {
+  colors,
+  fontSize,
+  fonts
+};
+</file>
+
+<file path="api-impressao-3d/src/server.js">
+const express = require('express');
+const cors = require('cors');
+const bcrypt = require('bcrypt'); 
+require('dotenv').config();
+const db = require('./db');
+const jwt = require('jsonwebtoken'); 
+const app = express();
+const { verificarToken, verificarAdmin } = require('./middlewares/auth');
+app.use(express.json());
+app.use(cors());
+
+const multer = require('multer');
+const { createClient } = require('@supabase/supabase-js');
+
+// config do Multer (guarda o arquivo na memoria temporariamente para envio rapido)
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Config do Supabase JS (so para guardar a imagem no storage)
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+// Rota de Teste 
+app.get('/', (req, res) => {
+  res.json({ message: 'A API de Impressão 3D está online.' });
+});
+
+//   rota: Criar um User/Admin
+app.post('/register', async (req, res) => {
+  try {
+    // o que esperamos receber do celular ou do teste?
+    const { name, email, password, role } = req.body;
+
+    //  verifica se os dados vieram vazios
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Faltam dados obrigatórios!' });
+    }
+
+    //  Criptografia: Embaralha a senha 10 vezes
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Insere ao Banco de Dados
+    const query = `
+      INSERT INTO users (name, email, password_hash, role) 
+      VALUES ($1, $2, $3, $4) 
+      RETURNING id, name, email, role;
+    `;
+    
+    // Os valores que vao substituir os $1, $2, $3, $4
+    const values = [name, email, passwordHash, role || 'user'];
+
+    const result = await db.query(query, values);
+
+    // 5. Retorna sucesso
+    res.status(201).json({ 
+      message: 'Usuário criado com sucesso!', 
+      user: result.rows[0] 
+    });
+
+  } catch (error) {
+    console.error(error);
+    // Erro 23505 é o código do PostgreSQL para "Esse email já existe"
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Este e-mail já pertence a outro usuário.' });
+    }
+    res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
+});
+
+app.post('/orcamentos', upload.single('file'), async (req, res) => {
+    try {
+        // 1. O guarda abre o pacote
+        const { material, estimated_grams, calculated_price, user_id } = req.body;
+        const file = req.file;
+
+        if (!file) {
+            return res.status(400).json({ error: 'A imagem da peça é obrigatória!' }); //pegou mal essa frase ai...
+        }
+
+        console.log(`Recebendo orçamento do aldeão ${user_id}...`);
+
+        // 2. Criar um nome único para a imagem
+        const nomeArquivo = `${user_id}_${Date.now()}_${file.originalname}`;
+
+        // 3. Enviar para o cofre do Supabase (Storage)
+        const { error: erroUpload } = await supabase.storage
+            .from('orcamentos')
+            .upload(nomeArquivo, file.buffer, {
+                contentType: file.mimetype,
+            });
+
+        if (erroUpload) {
+            console.error("Erro no cofre:", erroUpload);
+            return res.status(500).json({ error: 'Falha ao guardar a imagem no cofre.' });
+        }
+
+        // pega o url público da imagem que foi guardado
+        const { data: urlData } = supabase.storage
+            .from('orcamentos')
+            .getPublicUrl(nomeArquivo);
+        
+        const publicUrl = urlData.publicUrl;
+
+        // escreve na tabela os negocio
+        const query = `
+            INSERT INTO quotes (user_id, file_url, material, estimated_grams, calculated_price, status)
+            VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
+        `;
+        const values = [user_id, publicUrl, material, estimated_grams, calculated_price, 'pending'];
+
+        const result = await db.query(query, values);
+
+        //  msg deu certo
+        res.status(201).json({ 
+            message: 'Orçamento criado com sucesso!', 
+            orcamento: result.rows[0] 
+        });
+
+    } catch (error) {
+        console.error('Erro ao criar orçamento:', error);
+        res.status(500).json({ error: 'Erro interno no servidor.' });
+    }
+});
+
+//rota para listar os orçamentos do user
+app.get('/orcamentos/:user_id', async (req, res) => {
+  try {
+    const userId = req.params.user_id;
+    console.log(`Listando orçamentos para o aldeão ${userId}...`);
+    
+    const query = `
+      SELECT * FROM quotes 
+      WHERE user_id = $1 
+      ORDER BY created_at DESC;
+    `;
+
+    const result = await db.query(query, [userId]);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Erro ao listar orçamentos:', error);
+    res.status(500).json({ error: 'Erro interno no servidor.' });
+  }
+});
+
+// rota login (Login)
+app.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'E-mail e senha são obrigatórios!' });
+    }
+
+    const userResult = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    
+    if (userResult.rows.length === 0) {
+      return res.status(401).json({ error: 'Usuário não encontrado.' });
+    }
+
+    const user = userResult.rows[0];
+
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Senha incorreta!' });
+    }
+
+    // faz pulseira VIP (JWT)
+    // guardamos o ID e a patente (role) do user dentro do token
+    const token = jwt.sign(
+      { userId: user.id, role: user.role }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: '7d' } //  pulseira vale por 7 dias
+    );
+
+    // entrega a pulseira e os dados para o aplicativo do celular
+    res.json({
+      message: 'Bem-vindo de volta!',
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      },
+      token: token
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno no login.' });
+  }
+});
+//rota de teste
+app.get('/cofre', verificarToken, verificarAdmin, (req, res) => {
+  res.json({
+    message: 'Acesso concedido! Bem-vindo ao sistema, Superadmin.',
+    seuId: req.userId,
+    suaPatente: req.userRole
+  });
+});
+
+//rota adicionar produto ao catalogo (apenas admin)
+app.post('/products', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    const { title, description, price, stock, image_url } = req.body;
+
+    //validação básica
+    if (!title || !price) {
+      return res.status(400).json({ error: 'O título e o preço são obrigatórios!'});
+    }
+    
+    const query = `
+      INSERT INTO products (title, description, price, stock, image_url)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *;
+    `;
+    const values = [title, description, price, stock || 0, image_url || ''];
+  
+    const result = await db.query(query, values);
+  
+    res.status(201).json({
+      message: 'Novo produto adicionado ao catálogo!',
+      product: result.rows[0]
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno ao adicionar o produto.' });
+  }
+});
+
+//rota Listar produtos (aberta para todos)
+app.get('/products', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM products ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno ao listar os produtos.' });
+  }
+});
+
+//rota Criar orçamento com cálculo automático 
+app.post('/quotes', verificarToken, async (req, res) => {
+  try {
+    const { file_url, material, estimated_grams, estimated_hours } = req.body;
+    if (!file_url || !estimated_grams || !estimated_hours) {
+      return res.status(400).json({ error: 'Arquivo, peso e tempo estimado são obrigatórios!' });
+    }
+    //REGRA DE NEGÓCIO
+    let precoPorGrama = 0.50;
+    if (material ==='ABS') precoPorGrama = 0.40;
+    if (material ==='PETG') precoPorGrama = 0.60;
+    //custo fixo por hora
+    const custoPorHora = 5.00;
+    //calculo orçamento
+    const custoMaterial = estimated_grams * precoPorGrama;
+    const custoMaquina = estimated_hours * custoPorHora;
+    const precoFinalCalculado = custoMaterial + custoMaquina;
+
+    //salvar orçamento no banco
+    const query = `
+    INSERT INTO quotes (user_id, file_url, material, estimated_grams, estimated_hours, calculated_price, status)
+    VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+    RETURNING *;
+    `;
+    const values = [req.userId, file_url, material || 'PLA', estimated_grams, estimated_hours, precoFinalCalculado];
+    const result = await db.query(query, values);
+
+    res.status(201).json({
+      message: 'Orçamento calculado e enviado para aprovação!',
+      quote: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno ao processar o orçamento.' });
+  }
+});
+
+//rota Atualizar status orçamento
+app.put('/quotes/:id/status', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    const quoteId = req.params.id; //PEGA ID URL
+    const { status } = req.body; //approved or rejected
+
+    if (status !== 'approved' && status !== 'rejected') {
+      return res.status(400).json({ error: 'O status deve ser aprovado ou rejeitado.'});
+    }
+
+    const query = `
+    UPDATE quotes
+    SET status = $1
+    WHERE id = $2
+    RETURNING *;
+    `;
+    const result = await db.query(query, [status, quoteId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Orçamento não encontrado.' });
+    }
+
+    res.json({
+      message: `Orçamento atualizado para: ${status}`,
+      quote: result.rows[0]
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno ao atualizar o orçamento.' });
+  }
+});
+
+//rota Criar pedido
+app.post('/orders', verificarToken, async (req, res) => {
+  try {
+    const { quote_id, total_value, item_count } = req.body;
+    
+    if (!total_value || !item_count) {
+      return res.status(400).json({ error: 'O valor total e a quantidade de itens são obrigatórios!' });
+    }
+    //A REGRA DE NEGÓCIO 
+    let valorFinalCalculado = total_value;
+    let descontoAplicado = false;
+
+    //se pedir 10 ou mais ganha 10% desconto
+    if (item_count >= 10) {
+      valorFinalCalculado = total_value * 0.90;
+      descontoAplicado = true;
+    }
+
+    const query = `
+    INSERT INTO orders (user_id, quote_id, total_value, item_count, status)
+    VALUES ($1, $2, $3, $4, 'preparing')
+    RETURNING *;
+    `;
+
+    const values = [req.userId, quote_id || null, valorFinalCalculado, item_count];
+    const result = await db.query(query, values);
+
+    res.status(201).json({
+      message: descontoAplicado
+      ? 'Pedido criado! Você ganhou 10% de desconto por comprar 10 ou mais itens!'
+      : 'Pedido criado com sucesso!',
+      desconto_aplicado: descontoAplicado,
+      order: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno ao processar o pedido.' });
+  }
+});
+
+//rota Dashboard
+app.get('/dashboard', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    const [revenueResult, quotesResult, productsResult] = await Promise.all([
+      //Conta total pedido e soma todo dinheiro
+      db.query('SELECT COUNT(id) AS total_pedidos, COALESCE(SUM(total_value), 0) AS faturamento_total FROM orders'),
+      //Conta qnts orçamento aguardam aprovação
+      db.query("SELECT COUNT(id) AS orcamentos_pendentes FROM quotes WHERE status = 'pending'"),
+      //Conta qnts produtos tem na vitrine
+      db.query('SELECT COUNT(id) AS total_produtos_vitrine FROM products')
+    ]);
+
+    const relatorio = {
+      faturamento_total: parseFloat(revenueResult.rows[0].faturamento_total),
+      total_pedidos: parseInt(revenueResult.rows[0].total_pedidos),
+      orcamentos_pendentes: parseInt(quotesResult.rows[0].orcamentos_pendentes),
+      total_produtos_vitrine: parseInt(productsResult.rows[0].total_produtos_vitrine)
+    };
+    res.json({
+      message: 'Relatório gerado com sucesso!',
+      dashboard: relatorio
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno ao gerar o relatório.' });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Projeto operando na porta ${PORT}`);
+});
+</file>
+
+<file path="src/app/(app)/carrinho.tsx">
+import React, { useContext, useState, useEffect } from "react";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { CartContext } from "../../context/CartContext";
+import { AuthContext } from "../../context/AuthContext";
+import { useRouter } from "expo-router";
+
+export default function Carrinho() {
+  const router = useRouter();
+  const { carrinho, removerDoCarrinho, aumentarQuantidade, diminuirQuantidade } = useContext(CartContext) as any;
+  const { token } = useContext(AuthContext) as any;
+  
+  const [ listaOrcamentos, setListaOrcamentos ] = useState<any[]>([]);
+  const [ carregandoOrcamentos, setCarregandoOrcamentos ] = useState(true);
+
+  // A vossa magia de buscar as peças 3D
+  const buscarMeusOrcamentos = async () => {
+    try {
+      const urlAPI = `http://192.168.5.235:3000/orcamentos/1`; 
+      const resposta = await fetch(urlAPI);
+      const dados = await resposta.json();
+      setListaOrcamentos(dados);
+    } catch (error) {
+      console.error("Erro ao buscar orçamentos:", error);
+    } finally {
+      setCarregandoOrcamentos(false);
+    }
+  };
+
+  useEffect(() => {
+    buscarMeusOrcamentos();
+  }, []);
+
+  // A armadura visual do vosso aliado para confirmar a remoção
+  function confirmarRemocao(id: string | number, titulo: string) {
+    Alert.alert(
+      "Remover item",
+      `Deseja remover "${titulo}" do carrinho?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Remover", style: "destructive", onPress: () => removerDoCarrinho(id) },
+      ]
+    );
+  }
+
+  // O cartão do item da loja (Feito pelo aliado)
+  function renderizarItem({ item }: any) {
+    return (
+      <View style={styles.card}>
+        {item.image_url ? (
+          <Image source={{ uri: item.image_url }} style={styles.imagem} />
+        ) : (
+          <View style={styles.imagemVazia}>
+            <Ionicons name="cube-outline" size={28} color="#CCC" />
+          </View>
+        )}
+
+        <View style={styles.info}>
+          <Text style={styles.titulo} numberOfLines={2}>{item.title}</Text>
+          <Text style={styles.preco}>R$ {Number(item.price).toFixed(2)}</Text>
+
+          <View style={styles.quantidade}>
+            {item.quantidade > 1 && (
+              <TouchableOpacity style={styles.btnQtd} onPress={() => diminuirQuantidade(item.id)}>
+                <Ionicons name="remove" size={16} color="#9810FA" />
+              </TouchableOpacity>
+            )}
+            <Text style={styles.qtdTexto}>{item.quantidade}</Text>
+            <TouchableOpacity style={styles.btnQtd} onPress={() => aumentarQuantidade(item.id)}>
+              <Ionicons name="add" size={16} color="#9810FA" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.btnRemover} onPress={() => confirmarRemocao(item.id, item.title)}>
+          <Ionicons name="trash-outline" size={20} color="#EF4444" />
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // A matemática do Imperador: Soma Loja + Orçamentos 3D
+  const totalLoja = carrinho.reduce(( total: number, item: any ) => total + ( item.price * item.quantidade ), 0);
+  const totalOrcamentos = listaOrcamentos.reduce(( total: number, item: any ) => total + Number(item.calculated_price), 0);
+  const valorTotal = totalLoja + totalOrcamentos;
+
+  // A vossa rota de finalização
+  const finalizarPedido = async () => {
+    if (carrinho.length === 0 && listaOrcamentos.length === 0) {
+      alert("Atenção, o seu carrinho está vazio. Adicione itens antes de finalizar.");
+      return;
+    }
+    
+    if (!token) {
+      alert("Acesso Negado: A pulseira de identificação sumiu! Por favor, faça login novamente.");
+      return;
+    }
+
+    const quantidadeProdutos = carrinho.reduce((acc: number, item: any) => acc + item.quantidade, 0);
+    const quantidadeOrcamentos = listaOrcamentos.length; 
+    const totalItens = quantidadeProdutos + quantidadeOrcamentos;
+
+    try {
+      const urlAPI = `http://192.168.5.235:3000/orders`; 
+      const resposta = await fetch(urlAPI, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          quote_id: null, 
+          total_value: valorTotal,
+          item_count: totalItens
+        })
+      });
+
+      const dados = await resposta.json();
+
+      if (resposta.ok) {
+        alert("Sucesso! O seu pedido foi enviado! \n\n" + dados.message);
+        router.replace("/home");
+      } else {
+        alert("Erro, Algo deu errado ao finalizar." + dados.error);
+      }
+
+    } catch (error) {
+      console.error("Erro ao finalizar pedido:", error);
+      alert("Erro de Comunicação. Não foi possível enviar o pedido. Tente novamente mais tarde.");
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>Meu Carrinho</Text>
+
+      {/* --- SEÇÃO 1: ITENS DA LOJA --- */}
+      {carrinho.length === 0 ? (
+        <View style={styles.vazio}>
+          <Ionicons name="cart-outline" size={40} color="#CCC" />
+          <Text style={styles.vazioTexto}>Nenhum item da loja adicionado.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={carrinho}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderizarItem}
+          style={{ maxHeight: 250 }} 
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      {/* --- SEÇÃO 2: ORÇAMENTOS 3D  --- */}
+      <Text style={styles.tituloSecao}>Meus Orçamentos (Peças 3D)</Text>
+
+      { carregandoOrcamentos ? (
+        <ActivityIndicator size="large" color="#9810FA" />
+      ) : listaOrcamentos.length === 0 ? (
+        <Text style={styles.vazioTextoLista}>Nenhum orçamento pendente.</Text>
+      ) : (
+        <FlatList
+          data={listaOrcamentos}
+          keyExtractor={(item) => String(item.id)}
+          style={{ flex: 1 }} 
+          contentContainerStyle={{ paddingBottom: 100 }} // Espaço para não bater no rodapé flutuante
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <View style={styles.cartaoOrcamento}>
+              <Image source={{ uri: item.file_url }} style={styles.miniatura} />
+              <View style={styles.detalhesCartao}>
+                <Text style={styles.textoForte}>Material: {item.material}</Text>
+                <Text style={styles.textoPeso}>Peso: {item.estimated_grams}g</Text>
+                <Text style={styles.textoPrecoOrcamento}>Estimativa: R$ {item.calculated_price}</Text>
+                
+                <View style={[styles.insigniaStatus, item.status === 'pending' ? styles.statusPendente : styles.statusAprovado]}>
+                  <Text style={styles.textoStatus}>
+                    {item.status === 'pending' ? 'Em Avaliação' : 'Aprovado'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+        />
+      )}
+
+      {/* --- SEÇÃO 3: rodape --- */}
+      <View style={styles.rodape}>
+        <View style={styles.rodapeInfo}>
+          <Text style={styles.rodapeLabel}>Valor Total Final</Text>
+          <Text style={styles.rodapeTotal}>R$ {valorTotal.toFixed(2)}</Text>
+        </View>
+        <TouchableOpacity style={styles.botaoFinalizar} onPress={finalizarPedido}>
+          <Text style={styles.botaoFinalizarTexto}>Finalizar Pedido</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 16,
+  },
+  header: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginTop: 55,
+    marginBottom: 16,
+    color: "#222",
+  },
+  vazio: {
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "white",
+    borderRadius: 12,
+  },
+  vazioTexto: {
+    fontSize: 16,
+    color: "#888",
+    fontStyle: 'italic',
+  },
+  vazioTextoLista: {
+    fontSize: 14,
+    color: "#888",
+    fontStyle: 'italic',
+    textAlign: "center",
+    marginTop: 10,
+  },
+  card: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    marginBottom: 12,
+    flexDirection: "row",
+    padding: 12,
+    alignItems: "center",
+    elevation: 2,
+  },
+  imagem: {
+    width: 70,
+    height: 70,
+    borderRadius: 8,
+    backgroundColor: "#EEE",
+  },
+  imagemVazia: {
+    width: 70,
+    height: 70,
+    borderRadius: 8,
+    backgroundColor: "#EEE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  info: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  titulo: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#222",
+    marginBottom: 4,
+  },
+  preco: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#9810FA",
+    marginBottom: 8,
+  },
+  quantidade: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  btnQtd: {
+    borderWidth: 1,
+    borderColor: "#9810FA",
+    borderRadius: 6,
+    padding: 4,
+  },
+  qtdTexto: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#222",
+    minWidth: 20,
+    textAlign: "center",
+  },
+  btnRemover: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  rodape: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "white",
+    padding: 16,
+    paddingBottom: 28,
+    elevation: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#EEE",
+    gap: 12,
+  },
+  rodapeInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  rodapeLabel: {
+    fontSize: 14,
+    color: "#888",
+  },
+  rodapeTotal: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#222",
+  },
+  botaoFinalizar: {
+    backgroundColor: "#9810FA",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  botaoFinalizarTexto: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  tituloSecao: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 10,
+    color: '#333',
+  },
+  cartaoOrcamento: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+    elevation: 2, 
+  },
+  miniatura: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 10,
+    backgroundColor: '#eee',
+  },
+  detalhesCartao: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  textoForte: {
+    fontWeight: 'bold',
+    fontSize: 15,
+    color: '#333',
+  },
+  textoPeso: {
+    fontSize: 13,
+    color: '#666',
+    marginVertical: 2,
+  },
+  textoPrecoOrcamento: {
+    color: '#2E8B57',
+    fontWeight: 'bold',
+    marginVertical: 2,
+  },
+  insigniaStatus: {
+    marginTop: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  statusPendente: {
+    backgroundColor: '#fff3cd', 
+  },
+  statusAprovado: {
+    backgroundColor: '#d1e7dd', 
+  },
+  textoStatus: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+  }
+});
+</file>
+
+<file path="src/app/(app)/orcamento.tsx">
+import React, { useState, useContext } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Platform, TextInput } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { AuthContext } from '../../context/AuthContext';
+
+export default function Orcamento() {
+  const { user } = useContext(AuthContext) as any;
+  const [imagem, setImagem] = useState<string | null>(null);
+  const [tamanho, setTamanho] = useState('');
+  const [material, setMaterial] = useState('');  
+  const [qualidade, setQualidade] = useState('Padrão');
+
+  const escolherImagem = async () => {
+    const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissao.status !== 'granted') {
+      Alert.alert('Atenção', 'Precisamos de permissão para acessar as suas fotos!');
+      return;
+    }
+
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!resultado.canceled) {
+      setImagem(resultado.assets[0].uri);
+    }
+  };
+
+  const tirarFoto = async () => {
+    const permissao = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (permissao.status !== 'granted') {
+      Alert.alert('Acesso Negado', 'Precisamos de permissão para acessar a câmera!');
+      return;
+    }
+
+    // Abre a camera do dispo
+    const resultado = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, //so fotos
+      allowsEditing: true, //deixa o user cortar a foto depois de tirar
+      aspect: [4, 3], // proporção da foto
+      quality: 0.8, // qualidade boa
+    });
+    
+    //senao cancelou e tirou foto, salva o estado
+    if (!resultado.canceled) { 
+      setImagem(resultado.assets[0].uri);
+    }
+  };
+
+  // Regra de precificacao simples baseada nas escolhas do user
+  const calcularPreco = () => {
+    let precoBase = 0;
+    
+    // tamanho define o preco base
+    if (tamanho === 'Pequeno') precoBase = 25;
+    else if (tamanho === 'Médio') precoBase = 60;
+    else if (tamanho === 'Grande') precoBase = 120;
+
+    // qualidade atua como um multiplicador
+    let multiplicador = 1;
+    if (qualidade === 'Rascunho') multiplicador = 0.8; 
+    else if (qualidade === 'Padrão') multiplicador = 1.2; 
+    else if (qualidade === 'Alta') multiplicador = 1.8; 
+
+    const valorFinal = precoBase * multiplicador;
+    return valorFinal.toFixed(2).replace('.', ','); // Formata para real
+  };
+
+  const enviarOrcamento = async () => {
+    if (!imagem) {
+      Alert.alert('Atenção', 'Precisamos de uma imagem da peça!');
+      return;
+    }
+
+    try {
+      const pacote = new FormData();
+      if (Platform.OS === 'web') {
+        //pra rodar na web, expo go ta falhando toda hora...
+        const respostaImg = await fetch(imagem);
+        const blob = await respostaImg.blob();
+        pacote.append('file', blob, 'imagem_orcamento.jpg'); 
+      } else {
+        // pra rodar no celular, expo go funciona normal
+        const nomeArquivo = imagem.split('/').pop() || 'imagem.jpg';
+        const tipo = `image/${nomeArquivo.split('.').pop()}`;
+        // @ts-ignore - O TypeScript não gosta deste formato, mas o React Native precisa dele
+        pacote.append('file', {
+          uri: imagem,
+          name: nomeArquivo,
+          type: tipo,
+        });
+      }
+        
+      let gramas = 50;
+      if (tamanho === 'Médio') gramas = 150;
+      if (tamanho === 'Grande') gramas = 300;
+
+      const valorFinal = parseFloat(calcularPreco().replace(',', '.'));
+
+      // adiciona os textos ao pacote
+      pacote.append('material', material || 'PLA');
+      pacote.append('estimated_grams', String(gramas));
+      pacote.append('calculated_price', String(valorFinal));
+      pacote.append('user_id', String(user?.id || 1));
+
+      // dispara o pacote para API
+      const urlDaAPI = 'http://192.168.5.235:3000/orcamentos'; 
+
+      const resposta = await fetch(urlDaAPI, {
+        method: 'POST',
+        body: pacote,
+      });
+
+      if (!resposta.ok) {
+        throw new Error('Falha ao comunicar com os portões da API.');
+      }
+
+      Alert.alert('Sucesso!', 'O orçamento foi enviado com sucesso!');
+      
+      // limpa 
+      setImagem(null);
+      setTamanho('');
+      setMaterial('');
+
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Erro', 'Não foi possível enviar o orçamento. Tente novamente.');
+    }
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.titulo}>Novo Orçamento 3D</Text>
+      <Text style={styles.subtitulo}>Responda a duas perguntas simples e descubra o valor na hora.</Text>
+
+      {/* 1. Imagem */}
+      <View style={styles.areaImagem}>
+        {imagem ? (
+          <Image source={{ uri: imagem }} style={styles.imagemEscolhida} />
+        ) : (
+          <Text style={styles.textoSemImagem}>Nenhuma imagem selecionada</Text>
+        )}
+      </View>
+      <TouchableOpacity style={styles.botaoCamera} onPress={escolherImagem}>
+        <Text style={styles.textoBotao}> Anexar Imagem</Text>
+      </TouchableOpacity>
+
+      {/* <TouchableOpacity style={styles.botaoCamera} onPress={tirarFoto}>
+        <Text style={styles.textoBotao}> Tirar Foto Agora</Text>
+      </TouchableOpacity> */}
+      
+      {/* Perguntas */}
+      <View style={styles.secaoPerguntas}>
+        <Text style={styles.labelPergunta}>1. Qual o tamanho aproximado? (tamanho em cm)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ex: 10x5x3"
+          placeholderTextColor="#999"
+          value={tamanho}
+          onChangeText={setTamanho}
+        />
+
+        <Text style={styles.labelPergunta}>2. Qual o material que você quer usar?</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Material padrão"
+          placeholderTextColor="#999"
+          value={material}
+          onChangeText={setMaterial}
+        />
+      </View>
+
+      {/* botao de envio */}
+      <TouchableOpacity style={styles.botaoEnviar} onPress={enviarOrcamento}>
+        <Text style={styles.textoBotao}>Solicitar Orçamento</Text>
+      </TouchableOpacity>
+
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F5F5F5'
+  },
+  content: { 
+    padding: 20, 
+    alignItems: 'center', 
+    paddingBottom: 40 
+  },
+  titulo: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    color: '#333', 
+    marginBottom: 5, 
+    marginTop: 10 
+  },
+  subtitulo: { 
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 25 
+  },
+  areaImagem: { 
+    width: '100%', 
+    height: 180, 
+    backgroundColor: '#E8E8E8', 
+    borderRadius: 10, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginBottom: 15, 
+    overflow: 'hidden', 
+    borderWidth: 1, 
+    borderColor: '#CCC', 
+    borderStyle: 'dashed' 
+  },
+  imagemEscolhida: { 
+    width: '100%', 
+    height: '100%' 
+  },
+  textoSemImagem: { 
+    color: '#999' 
+  },
+  botaoCamera: { 
+    backgroundColor: '#555', 
+    padding: 12, 
+    borderRadius: 8, 
+    width: '100%', 
+    alignItems: 'center', 
+    marginBottom: 10 // Reduzi um pouco o espaçamento para caberem os dois botões elegantemente
+  },
+  secaoPerguntas: {
+    width: '100%', 
+    marginBottom: 20,
+    marginTop: 10
+  },
+  labelPergunta: { 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    color: '#444', 
+    marginBottom: 10, 
+    marginTop: 10 
+  },
+  input: {
+    width: '100%',
+    height: 48,
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 10,
+  },
+  botaoEnviar: { 
+    backgroundColor: '#000', 
+    padding: 18,
+    borderRadius: 10,
+    width: '100%',
+    alignItems: 'center' 
+  },
+  textoBotao: { 
+    color: '#FFF', 
+    fontWeight: 'bold',
+    fontSize: 16 
+  },
+});
+</file>
+
+<file path="src/app/(app)/perfil.tsx">
+import React, { useContext } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { AuthContext } from "../../context/AuthContext";
+
+export default function Perfil() {
+  const router = useRouter();
+  const { user, signOut } = useContext(AuthContext) as any;
+
+  const realizarLogout = async () => {
+    try {
+      await signOut();
+      router.replace("/login");
+    } catch (error) {
+      console.log("Erro ao sair: ", error);
+      Alert.alert("Erro", "Não foi possível sair. Tente novamente.");
+    }
+  };
+
+  function confirmarSaida() {
+    if (Platform.OS === "web") {
+      const querSair = window.confirm("Tem certeza que deseja sair?");
+      if (querSair) realizarLogout();
+    } else {
+      Alert.alert(
+        "Fazer Logout",
+        "Tem certeza que deseja sair?",
+        [
+          { text: "Ficar", style: "cancel" },
+          { text: "Sair", style: "destructive", onPress: realizarLogout },
+        ]
+      );
+    }
+  }
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Ionicons name="person-circle-outline" size={100} color="#9810FA" />
+        <Text style={styles.nome}>{user?.name ?? "Usuário"}</Text>
+        <Text style={styles.email}>{user?.email ?? ""}</Text>
+        
+        <View style={styles.badgeRole}>
+          <Text style={styles.badgeTexto}>
+            {user?.role === 'admin' ? "Superadmin" : "Aldeão"}
+          </Text>
+        </View>
+      </View>
+
+      <TouchableOpacity style={styles.botaoSair} onPress={confirmarSaida}>
+        <Ionicons name="log-out-outline" size={22} color="white" />
+        <Text style={styles.botaoSairTexto}>Fazer Logout</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 50,
+  },
+  nome: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#222",
+    marginTop: 12,
+  },
+  email: {
+    fontSize: 14,
+    color: "#888",
+    marginTop: 4,
+  },
+  badgeRole: {
+    marginTop: 10,
+    backgroundColor: "#E9D4FF",
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  badgeTexto: {
+    color: "#9810FA",
+    fontWeight: "bold",
+    fontSize: 13,
+    textTransform: "capitalize",
+  },
+  botaoSair: {
+    backgroundColor: "#9810FA",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 12,
+    gap: 10,
+    width: "80%",
+    elevation: 3,
+  },
+  botaoSairTexto: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+});
+</file>
+
+<file path="src/app/recuperar.tsx">
+import { View, StyleSheet, TextInput, TouchableOpacity, Alert } from "react-native";
+import { useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { theme } from "@/theme";
+import { Text } from "@/components/Text";
+import { Ionicons } from "@expo/vector-icons";
+import { Botao } from "@/components/Buttom/button";
+
+export default function Recuperar() {
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+
+  const [senha, setSenha] = useState("");
+
+  function handleNavigateRegister() {
+    router.push("/register");
+  }
+
+  function enviarRecuperacao() {
+    if (!email.trim()) {
+      Alert.alert("Atenção", "Por favor, informe seu email.")
+      return
+    }
+    Alert.alert("Aviso", "Recuperação de senha sem lógica no momento devido a necessidade de outras prioridades no projeto!")
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.box}>
+        <View style={styles.header}>
+          <View style={styles.icon}>
+            <Ionicons name="cube-outline" size={30} color="white" />
+          </View>
+          <Text style={styles.titulo}>Recuperar Senha</Text>
+        </View>
+        <View style={styles.mid}>
+          <Text style={styles.txt}>Digite seu email para enviar o link de recuperação</Text>
+          <View style={styles.input}>
+            <TextInput
+              placeholder="Email"
+              onChangeText={setEmail}
+              value={email}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
+            ></TextInput>
+          </View>
+        </View>
+        <View style={styles.botao}>
+          <Botao
+            titulo="Enviar"
+            color="white"
+            border={2}
+            borderColor="black"
+            backgroundColor={"black"}
+            onPress={enviarRecuperacao}
+          ></Botao>
+          
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 10,
+  },
+  box: {
+    borderWidth: 2,
+    width: "100%",
+    height: "45%",
+    alignItems: "center",
+    gap: 20,
+  },
+  icon: {
+    backgroundColor: "black",
+    padding: 10,
+    borderRadius: 999,
+    marginVertical: 15,
+    width: "100%",
+  },
+  header: {
+    alignItems: "center",
+  },
+  titulo: {
+    fontFamily: theme.fonts.bold,
+    fontSize: theme.fontSize.xl,
+  },
+  mid: {
+    width: "100%",
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    paddingHorizontal: 20,
+  },
+  input: {
+    borderWidth: 2,
+    width: "100%",
+    height: 40,
+    marginTop: 10,
+    borderRadius: 8,
+    borderColor: theme.colors.cinzaClaro,
+    backgroundColor: theme.colors.grey1,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  txt: {
+    fontFamily: theme.fonts.regular,
+    fontSize: theme.fontSize.sm,
+    paddingTop: 20,
+  },
+  botao: {
+    width: "100%",
+    paddingHorizontal: 10,
+    paddingTop: 20,
+  },
+ 
+});
+</file>
+
+<file path="src/components/Buttom/button.tsx">
+import { TouchableOpacity, TouchableOpacityProps} from 'react-native';
+import { Text } from '@/components/Text/index';
+import {styles} from "./styles"
+
+
+type Props = TouchableOpacityProps & {
+  titulo: string
+  icon?: any
+  color: string
+  border?: number
+  borderColor?: string
+  backgroundColor?: any
+}
+
+export function Botao({titulo, icon, color, border, borderColor,backgroundColor, ...rest}: Props)  {
+
+  return(
+    <TouchableOpacity {...rest} style={[styles.botao, {borderWidth: border, borderColor: borderColor, backgroundColor: backgroundColor}]}>
+      <Text style={[styles.txt, {color: color}]}>{titulo}</Text>
+      {icon}
+    </TouchableOpacity>
+  )
+}
+</file>
+
+<file path="src/context/AuthContext.tsx">
+import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+//  o formato do nosso user (qm é esse cara?)
+type User = {
+  id: string | number;
+  name?: string;
+  email?: string;
+  role?: string; // Para sabermos depois se é "admin" ou "user"
+};
+
+// o mapa de tudo o que é guardado e feito (o que é que o app pode fazer com o user?)
+type AuthContextData = {
+  user: User | null;
+  token: string | null;
+  signIn: (userData: User, token: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  isLoading: boolean;
+};
+
+// a criacao do bau (e isto que o arquivo orcamento.tsx ta tentando importar)
+export const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+
+// 4. protetor(da acesso ao q ta dentro)
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // assim que o app abre,verifica se o user ja tava logado antes
+  useEffect(() => {
+    const loadStorageData = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem('@Trecos3D:user');
+        const storedToken = await AsyncStorage.getItem('@Trecos3D:token');
+
+        if (storedUser && storedToken) {
+          setUser(JSON.parse(storedUser)); // Devolve a informacao do user para o estado, mantendo-o logado
+          setToken(storedToken); // Restaura o passe
+        }
+      } catch (error) {
+        console.error('Erro ao ler os cofres do telemóvel:', error);
+      } finally {
+        setIsLoading(false); 
+      }
+    };
+
+    loadStorageData();
+  }, []);
+
+  // Pra entrar no app (Usada no Login)
+  const signIn = async (userData: User, token: string) => {
+    // guarda os registos no cel
+    await AsyncStorage.setItem('@Trecos3D:user', JSON.stringify(userData));
+    await AsyncStorage.setItem('@Trecos3D:token', token);
+    
+    // Seta o estado atual do usuário 
+    setUser(userData);
+    setToken(token); // Seta o token
+  };
+
+  // Pra sair do app (Usada no Logout)
+  const signOut = async () => {
+    // apaga os registos do cel
+    await AsyncStorage.removeItem('@Trecos3D:user');
+    await AsyncStorage.removeItem('@Trecos3D:token');
+    
+    // Retira o utilizador do estado atual
+    setUser(null);
+    setToken(null); 
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, token, signIn, signOut,  isLoading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+</file>
+
+<file path="src/services/authService.ts">
+import axios from 'axios';
+const api = axios.create({
+  baseURL: 'http://192.168.1.33:3000', // Coloca seu ip aqui
+});
+
+export default api;
+</file>
+
+<file path="src/theme/colors.ts">
+export const colors = {
+  white: '#ffffff',
+  grey1: '#FAFAFA',
+  roxoRosa: ['#9810FA', '#E60076'] as const,
+  roxoClaro: '#E9D4FF',
+  roxo: '#9810FA',
+  rosaChoque: '#E60076',
+  rosaChoqueClaro: '#FCCEE8',
+  azulClaro: '#BEDBFF',
+  azul: '#155DFC',
+  cinzaClaro: '#D9D9D9'
+};
+</file>
+
+<file path="tsconfig.json">
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-native",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
+}
+</file>
+
+<file path="app.json">
+{
+  "expo": {
+    "name": "Trecos3D",
+    "slug": "Trecos3D",
+    "scheme": "Trecos3D",
+    "experiments": {
+      "typedRoutes": true
+    },
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.Trecos3D"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-status-bar"
+    ]
+  }
+}
+</file>
+
+<file path="src/app/_layout.tsx">
+import { Slot } from 'expo-router';
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
+import { AuthProvider } from '../context/AuthContext';
+
+export default function RootLayout() {
+
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  return (
+    <AuthProvider>
+      <Slot />
+    </AuthProvider>
+  );
+}
+</file>
+
+<file path="src/app/register.tsx">
+import { View, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import { useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { theme } from "@/theme";
+import { Text } from "@/components/Text";
+import { Ionicons } from "@expo/vector-icons";
+import { Botao } from "@/components/Buttom/button";
+import { goBack } from "expo-router/build/global-state/routing";
+import api from "../services/authService";
+
+export default function Login() {
+  const router = useRouter();
+
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [confirmaSenha, setConfirmaSenha] = useState("");
+
+  async function handleRegister() {
+    //verifica se ta preenchido
+    if (!nome || !email || !senha) {
+      alert("Atenção! Preencha todos os campos do pergaminho.");
+      return;
+    }
+    // verifica se as senhas tao iguais
+    if (senha !== confirmaSenha) {
+      alert("As senhas não coincidem.");
+      return;
+    }
+    try {
+      //envia pro servidor
+      const response = await api.post('/register', {
+        name: nome,
+        email: email,
+        password: senha
+      });
+      alert("Usuário criado com sucesso!");
+      setNome("");
+      setEmail("");
+      setSenha("");
+      setConfirmaSenha("");
+      
+      //vai pra tela de login agora
+      router.replace("/login");
+
+    } catch (error) {
+      console.log("Erro na criação de conta do usuário: ", error);
+      alert("Falha ao criar a conta. Verifique se o e-mail já existe ou se o servidor está ativo.");
+    }
+  }
+  
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.box}>
+        <View style={styles.header}>
+          <View style={styles.icon}>
+            <Ionicons name="cube-outline" size={30} color="white" />
+          </View>
+          <Text style={styles.titulo}>Crie sua conta!</Text>
+          <Text>Cadastre-se para começar</Text>
+        </View>
+        <View style={styles.mid}>
+          <Text style={styles.txtSenha}>Nome</Text>
+          <View style={styles.input}>
+            <TextInput
+              placeholder="Digite seu nome"
+              onChangeText={setNome}
+              value={nome}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
+            ></TextInput>
+          </View>
+          <Text style={styles.txt}>Email</Text>
+          <View style={styles.input}>
+            <TextInput
+              placeholder="Digite seu Email"
+              onChangeText={setEmail}
+              value={email}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
+            ></TextInput>
+          </View>
+          <Text style={styles.txtSenha}>Senha</Text>
+          <View style={styles.input}>
+            <TextInput
+              placeholder="Digite sua senha"
+              secureTextEntry={true}
+              onChangeText={setSenha}
+              value={senha}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
+            ></TextInput>
+          </View>
+          <Text style={styles.txtSenha}>Confirmação de senha</Text>
+          <View style={styles.input}>
+            <TextInput
+              placeholder="Confirme sua senha"
+              secureTextEntry={true}
+              onChangeText={setConfirmaSenha}
+              value={confirmaSenha}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
+            ></TextInput>
+          </View>
+        </View>
+        <View style={styles.botao}>
+          <Botao
+            titulo="Cadastrar"
+            color="white"
+            border={2}
+            borderColor="black"
+            backgroundColor={"black"}
+            onPress={handleRegister}
+          ></Botao>
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 10,
+  },
+  box: {
+    borderWidth: 2,
+    width: "100%",
+    alignItems: "center",
+    gap: 20,
+    paddingBottom: 20
+  },
+  icon: {
+    backgroundColor: "black",
+    padding: 10,
+    borderRadius: 999,
+    marginVertical: 15,
+    width: "100%",
+  },
+  header: {
+    alignItems: "center",
+  },
+  titulo: {
+    fontFamily: theme.fonts.bold,
+    fontSize: theme.fontSize.xl,
+  },
+  mid: {
+    width: "100%",
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    paddingHorizontal: 20,
+  },
+  input: {
+    borderWidth: 2,
+    width: "100%",
+    height: 40,
+    marginTop: 10,
+    borderRadius: 8,
+    borderColor: theme.colors.cinzaClaro,
+    backgroundColor: theme.colors.grey1,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  txt: {
+    fontFamily: theme.fonts.bold,
+    fontSize: theme.fontSize.md,
+    paddingTop: 20,
+  },
+  txtSenha: {
+    fontFamily: theme.fonts.bold,
+    fontSize: theme.fontSize.md,
+    paddingTop: 20,
+  },
+  esqueciSenhaBox: {
+    width: "100%",
+    alignItems: "flex-end",
+    paddingRight: 5,
+    paddingTop: 7,
+  },
+  botao: {
+    width: "100%",
+    paddingHorizontal: 10,
+    paddingTop: 20,
+  },
+});
+</file>
+
+<file path="src/app/(app)/_layout.tsx">
+import { useContext, useEffect } from "react";
+import { Tabs, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { CartProvider } from "../../context/CartContext";
+import { AuthContext } from "../../context/AuthContext";
+
+export default function AppLayout() {
+  const { user, isLoading } = useContext(AuthContext);
+  const router = useRouter();
+
+  useEffect(() => {
+    // Se terminou de carregar e não tem usuário logado, manda pro login
+    if (!isLoading && !user) {
+      router.replace("/login");
+    }
+  }, [user, isLoading]);
+
+  // Enquanto verifica o login, não renderiza nada
+  if (isLoading || !user) return null;
+
+  return (
+      <CartProvider>
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            tabBarActiveTintColor: "black",
+            tabBarInactiveTintColor: "gray",
+            tabBarStyle: {
+              backgroundColor: "#ffffff",
+              borderTopWidth: 1,
+              borderTopColor: "#e0e0e0",
+              height: 65,
+              paddingBottom: 10,
+              paddingTop: 5,
+            },
+          }}
+        >
+          <Tabs.Screen
+            name="home"
+            options={{
+              title: "Loja",
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="home-outline" size={size} color={color} />
+              ),
+            }}
+          />
+
+          <Tabs.Screen
+            name="carrinho"
+            options={{
+              title: "Carrinho",
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="cart-outline" size={size} color={color} />
+              ),
+            }}
+          />
+
+          <Tabs.Screen
+            name="admin"
+            options={{
+              title: "Dashboard",
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="stats-chart-outline" size={size} color={color} />
+              ),
+              href: user?.role === 'admin' ? '/admin' : null,
+            }}
+            />
+
+        <Tabs.Screen
+          name="perfil"
+          options={{
+            title: "Perfil",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="person-outline" size={size} color={color} />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
+          name="orcamento"
+          options={{
+            title: "Orçamento",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="bulb-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      </Tabs>
+    </CartProvider>
+  );
+}
+</file>
+
+<file path="src/app/index.tsx">
+import { View, StyleSheet } from "react-native";
+import { Text } from "@/components/Text/index";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { theme } from "@/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import MaskedView from "@react-native-masked-view/masked-view";
+import { Ionicons } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { InfoCard } from "@/components/InfoCard";
+import { Botao } from "@/components/Buttom/button";
+
+export default function Index() {
+  const router = useRouter();
+
+  function handleNavigateLogin() {
+    router.push("/login");
+  }
+
+  function handleNavigateHome() {
+    router.push("/home-guest")
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <LinearGradient
+          style={styles.cubo}
+          colors={theme.colors.roxoRosa}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <Ionicons name="cube-outline" size={70} color="white" />
+        </LinearGradient>
+        <MaskedView maskElement={<Text style={styles.titulo}>Loja 3D</Text>}>
+          <LinearGradient
+            colors={theme.colors.roxoRosa}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Text style={[styles.titulo, { opacity: 0 }]}>Loja 3D</Text>
+          </LinearGradient>
+        </MaskedView>
+        <Text style={styles.subTitulo}>
+          Peças impressas em 3D prontras para retirada
+        </Text>
+      </View>
+      <View style={styles.box}>
+        <InfoCard
+          titulo="Peças em estoque"
+          texto="Peças impressas em 3D prontas para retirada imediata. Alta
+              qualidade e acabamento profissional."
+          borderColor={theme.colors.roxoClaro}
+          icon={
+            <Feather name="shopping-bag" size={24} color={theme.colors.roxo} />
+          }
+          iconBg={theme.colors.roxoClaro}
+        />
+
+        <InfoCard
+          titulo="Peças sob encomenda"
+          texto="Solicite orçamento para peças personalizadas. Imprimimos seu
+              projeto com qualidade premium!"
+          borderColor={theme.colors.rosaChoqueClaro}
+          icon={
+            <MaterialIcons
+              name="auto-awesome"
+              size={24}
+              color={theme.colors.rosaChoque}
+            />
+          }
+          iconBg={theme.colors.rosaChoqueClaro}
+        />
+
+        <InfoCard
+          titulo="Retirada na Loja"
+          texto="Peças prontas para retirada imediata. Compre online e retire na hora!"
+          borderColor={theme.colors.azulClaro}
+          icon={
+            <Ionicons name="cube-outline" size={24} color={theme.colors.azul} />
+          }
+          iconBg={theme.colors.azulClaro}
+        />
+      </View>
+
+      <View style={styles.botoes}>
+        <LinearGradient style={styles.backBotao}
+            colors={theme.colors.roxoRosa}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+          <Botao titulo="Entrar na Loja" onPress={handleNavigateLogin} color={theme.colors.white} icon={<Feather name="arrow-right" size={24} color="white" />}/>
+        </LinearGradient>
+
+        <Botao titulo="Explorar sem Login" onPress={handleNavigateHome} color={"black"}  border={2} borderColor={theme.colors.cinzaClaro}/>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 10,
+    backgroundColor: theme.colors.grey1,
+  },
+  header: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cubo: {
+    width: 127,
+    height: 127,
+    borderRadius: 20,
+    transform: [{ rotate: "6deg" }],
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  titulo: {
+    fontSize: theme.fontSize.titulo,
+    color: theme.colors.white,
+    fontFamily: theme.fonts.bold,
+    marginBottom: 10,
+  },
+  subTitulo: {
+    fontFamily: theme.fonts.regular,
+    fontSize: theme.fontSize.md,
+  },
+  box: {
+    paddingHorizontal: 20,
+    marginTop: 15,
+  },
+  botoes: {
+    marginTop: 20,
+    gap: 20
+  },
+  backBotao: {
+    borderRadius: 20
+  }
+});
+</file>
+
+<file path="package.json">
+{
+  "name": "trecos3d",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo/vector-icons": "^15.0.3",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-masked-view/masked-view": "0.3.2",
+    "axios": "^1.16.1",
+    "expo": "^56.0.8",
+    "expo-constants": "^56.0.16",
+    "expo-font": "~56.0.5",
+    "expo-image-picker": "~56.0.15",
+    "expo-linear-gradient": "~56.0.4",
+    "expo-linking": "^56.0.13",
+    "expo-router": "^56.2.8",
+    "expo-status-bar": "~56.0.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "4.25.2",
+    "react-native-web": "^0.21.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.14",
+    "typescript": "~6.0.3"
+  },
+  "private": true
+}
+</file>
+
+<file path="src/app/(app)/home.tsx">
+import { useState, useEffect, useContext } from "react"
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+  Image,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  Modal,
+} from "react-native"
+import { LinearGradient } from "expo-linear-gradient"
+import { Ionicons } from "@expo/vector-icons"
+import api from "../../services/authService"
+import { CartContext } from "../../context/CartContext"
+
+const CATEGORIAS = ["Todos", "Brinquedos", "Utilitários", "Decoração"]
+
+export default function Home() {
+  const [produtos, setProdutos] = useState<any[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const [busca, setBusca] = useState("")
+  const [categoriaAtiva, setCategoriaAtiva] = useState("Todos")
+  const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null)
+
+  const { adicionarAoCarrinho } = useContext(CartContext)
+
+  async function buscarProdutos() {
+    try {
+      const urlDaAPI = `http://192.168.5.235:3000/products`;
+      const response = await fetch(urlDaAPI);
+      const dados = await response.json();
+
+      setProdutos(dados)
+    } catch (error) {
+      console.log("Erro ao buscar produtos:", error)
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    buscarProdutos()
+  }, [])
+
+  const produtosFiltrados = produtos.filter((p) => {
+    const nomeOk = p.title?.toLowerCase().includes(busca.toLowerCase())
+    const categoriaOk = categoriaAtiva === "Todos" || p.category === categoriaAtiva
+    return nomeOk && categoriaOk
+  })
+
+  function renderizarProduto({ item }: any) {
+    return (
+      <TouchableOpacity style={styles.card} onPress={() => setProdutoSelecionado(item)}>
+        {item.image_url ? (
+          <Image source={{ uri: item.image_url }} style={styles.imagemCard} />
+        ) : (
+          <View style={styles.imagemVazia} />
+        )}
+
+        <View style={styles.badgeEstoque}>
+          <Text style={styles.badgeTexto}>Em Estoque</Text>
+        </View>
+
+        {item.category ? (
+          <View style={styles.badgeCategoria}>
+            <Text style={styles.badgeCategoriaTexto}>{item.category}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardTitulo} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.cardDescricao} numberOfLines={2}>{item.description}</Text>
+          <View style={styles.cardRodape}>
+            <Text style={styles.cardPreco}>R$ {Number(item.price).toFixed(2)}</Text>
+            <TouchableOpacity
+              style={styles.botaoComprar}
+              onPress={() => adicionarAoCarrinho(item)}
+            >
+              <Text style={styles.botaoComprarTexto}>Comprar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    )
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <LinearGradient colors={["#9810FA", "#E60076"]} style={styles.header}>
+        <View style={styles.headerTopo}>
+          <Text style={styles.headerLogo}>Loja 3D</Text>
+          <View style={styles.headerIcones}>
+            <Ionicons name="notifications-outline" size={22} color="white" />
+          </View>
+        </View>
+
+      </LinearGradient>
+
+      {/* Busca */}
+      <View style={styles.buscaContainer}>
+        <Ionicons name="search-outline" size={18} color="#888" style={styles.buscaIcone} />
+        <TextInput
+          style={styles.buscaInput}
+          placeholder="Buscar produtos..."
+          placeholderTextColor="#888"
+          value={busca}
+          onChangeText={setBusca}
+        />
+      </View>
+
+      {/* Filtros */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filtrosScroll}
+        contentContainerStyle={styles.filtrosConteudo}
+      >
+        {CATEGORIAS.map((cat) => (
+          <TouchableOpacity
+            key={cat}
+            style={[styles.filtro, categoriaAtiva === cat && styles.filtroAtivo]}
+            onPress={() => setCategoriaAtiva(cat)}
+          >
+            <Text style={[styles.filtroTexto, categoriaAtiva === cat && styles.filtroTextoAtivo]}>
+              {cat}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Lista */}
+      {carregando ? (
+        <ActivityIndicator size="large" color="#9810FA" style={{ marginTop: 40 }} />
+      ) : (
+        <FlatList
+          data={produtosFiltrados}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderizarProduto}
+          contentContainerStyle={styles.lista}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <Text style={styles.listaVazia}>Nenhum produto encontrado.</Text>
+          }
+        />
+      )}
+
+      {/* Modal de detalhe do produto */}
+      <Modal
+        visible={produtoSelecionado !== null}
+        animationType="slide"
+        onRequestClose={() => setProdutoSelecionado(null)}
+      >
+        {produtoSelecionado && (
+          <View style={styles.modalContainer}>
+            {/* Botão fechar */}
+            <TouchableOpacity
+              style={styles.modalBotaoFechar}
+              onPress={() => setProdutoSelecionado(null)}
+            >
+              <Ionicons name="arrow-back" size={24} color="#222" />
+            </TouchableOpacity>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {produtoSelecionado.image_url ? (
+                <Image source={{ uri: produtoSelecionado.image_url }} style={styles.modalImagem} />
+              ) : (
+                <View style={styles.modalImagemVazia}>
+                  <Ionicons name="cube-outline" size={80} color="#CCC" />
+                </View>
+              )}
+
+              <View style={styles.modalConteudo}>
+                <View style={styles.badgeEstoque}>
+                  <Text style={styles.badgeTexto}>✓ Em Estoque</Text>
+                </View>
+
+                <Text style={styles.modalTitulo}>{produtoSelecionado.title}</Text>
+                <Text style={styles.modalPreco}>R$ {Number(produtoSelecionado.price).toFixed(2)}</Text>
+
+                <View style={styles.divisor} />
+
+                <Text style={styles.modalSecao}>Descrição</Text>
+                <Text style={styles.modalDescricao}>
+                  {produtoSelecionado.description || "Sem descrição disponível."}
+                </Text>
+
+                <View style={styles.divisor} />
+
+                <Text style={styles.modalSecao}>Informações</Text>
+
+                <View style={styles.infoLinha}>
+                  <Ionicons name="cube-outline" size={18} color="#9810FA" />
+                  <Text style={styles.infoTexto}>Materiais: PLA, ABS, PETG, Resina</Text>
+                </View>
+                <View style={styles.infoLinha}>
+                  <Ionicons name="layers-outline" size={18} color="#9810FA" />
+                  <Text style={styles.infoTexto}>Impressão 3D de alta qualidade</Text>
+                </View>
+                <View style={styles.infoLinha}>
+                  <Ionicons name="storefront-outline" size={18} color="#9810FA" />
+                  <Text style={styles.infoTexto}>Retirada imediata na loja</Text>
+                </View>
+                <View style={styles.infoLinha}>
+                  <Ionicons name="checkmark-circle-outline" size={18} color="#9810FA" />
+                  <Text style={styles.infoTexto}>Acabamento profissional</Text>
+                </View>
+              </View>
+            </ScrollView>
+
+            {/* Rodapé fixo */}
+            <View style={styles.modalRodape}>
+              <View>
+                <Text style={styles.modalRodapeLabel}>Total</Text>
+                <Text style={styles.modalRodapePreco}>
+                  R$ {Number(produtoSelecionado.price).toFixed(2)}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.modalBotaoComprar}
+                onPress={() => {
+                  adicionarAoCarrinho(produtoSelecionado)
+                  setProdutoSelecionado(null)
+                }}
+              >
+                <Ionicons name="cart-outline" size={20} color="white" />
+                <Text style={styles.modalBotaoComprarTexto}>Adicionar ao Carrinho</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </Modal>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F5F5F5",
+  },
+
+  header: {
+    paddingTop: 50,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+  },
+  headerTopo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  headerLogo: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "white",
+  },
+  headerIcones: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  banner: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  bannerCard: {
+    flex: 1,
+    borderRadius: 10,
+    padding: 12,
+  },
+  bannerTitulo: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  bannerSub: {
+    color: "white",
+    fontSize: 11,
+    opacity: 0.9,
+  },
+
+  buscaContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    elevation: 2,
+  },
+  buscaIcone: {
+    marginRight: 8,
+  },
+  buscaInput: {
+    flex: 1,
+    height: 42,
+    fontSize: 14,
+    color: "#333",
+  },
+
+  filtrosScroll: {
+    marginTop: 12,
+    maxHeight: 40,
+  },
+  filtrosConteudo: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filtro: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#DDD",
+  },
+  filtroAtivo: {
+    backgroundColor: "#9810FA",
+    borderColor: "#9810FA",
+  },
+  filtroTexto: {
+    fontSize: 13,
+    color: "#555",
+  },
+  filtroTextoAtivo: {
+    color: "white",
+    fontWeight: "bold",
+  },
+
+  lista: {
+    padding: 16,
+    gap: 14,
+  },
+  listaVazia: {
+    textAlign: "center",
+    marginTop: 50,
+    color: "#888",
+    fontSize: 15,
+  },
+
+  card: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    overflow: "hidden",
+    elevation: 2,
+  },
+  imagemCard: {
+    width: "100%",
+    height: 180,
+    backgroundColor: "#EEE",
+  },
+  imagemVazia: {
+    width: "100%",
+    height: 180,
+    backgroundColor: "#DDD",
+  },
+  badgeEstoque: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "#22C55E",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  badgeTexto: {
+    color: "white",
+    fontSize: 11,
+    fontWeight: "bold",
+  },
+  badgeCategoria: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    backgroundColor: "#9810FA22",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  badgeCategoriaTexto: {
+    color: "#9810FA",
+    fontSize: 11,
+    fontWeight: "bold",
+  },
+  cardInfo: {
+    padding: 12,
+  },
+  cardTitulo: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#222",
+    marginBottom: 4,
+  },
+  cardDescricao: {
+    fontSize: 13,
+    color: "#666",
+    marginBottom: 10,
+  },
+  cardRodape: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cardPreco: {
+    fontSize: 17,
+    fontWeight: "bold",
+    color: "#222",
+  },
+  botaoComprar: {
+    backgroundColor: "#1A1A1A",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  botaoComprarTexto: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+
+  // Modal
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "#F5F5F5",
+  },
+  modalBotaoFechar: {
+    position: "absolute",
+    top: 50,
+    left: 16,
+    zIndex: 10,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 8,
+    elevation: 3,
+  },
+  modalImagem: {
+    width: "100%",
+    height: 320,
+    backgroundColor: "#EEE",
+  },
+  modalImagemVazia: {
+    width: "100%",
+    height: 320,
+    backgroundColor: "#EEE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalConteudo: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    marginTop: -20,
+    padding: 20,
+    paddingBottom: 120,
+  },
+  modalTitulo: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#222",
+    marginTop: 10,
+    marginBottom: 8,
+  },
+  modalPreco: {
+    fontSize: 26,
+    fontWeight: "bold",
+    color: "#9810FA",
+    marginBottom: 16,
+  },
+  divisor: {
+    height: 1,
+    backgroundColor: "#EEE",
+    marginVertical: 16,
+  },
+  modalSecao: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#444",
+    marginBottom: 10,
+  },
+  modalDescricao: {
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 22,
+  },
+  infoLinha: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    gap: 10,
+  },
+  infoTexto: {
+    fontSize: 14,
+    color: "#555",
+  },
+  modalRodape: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "white",
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    paddingBottom: 28,
+    elevation: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#EEE",
+    gap: 12,
+  },
+  modalRodapeLabel: {
+    fontSize: 12,
+    color: "#888",
+  },
+  modalRodapePreco: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#222",
+  },
+  modalBotaoComprar: {
+    flex: 1,
+    backgroundColor: "#9810FA",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  modalBotaoComprarTexto: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+})
+</file>
+
+<file path="src/app/login.tsx">
+import { View, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import { useState, useEffect, useContext } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { theme } from "@/theme";
+import { Text } from "@/components/Text";
+import { Ionicons } from "@expo/vector-icons";
+import { Botao } from "@/components/Buttom/button";
+import { AuthContext } from "@/context/AuthContext";
+import api from "../services/authService";
+
+export default function Login() {
+  const router = useRouter();
+  const { signIn, token, user } = useContext(AuthContext) as any;
+
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+
+  useEffect(() => {
+    if (token && user) {
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        router.replace("/admin");
+      } else { 
+        router.replace("/home");
+      }
+    }
+  }, [token, user]);
+
+  async function executarLogin() {
+    try {
+      const response = await api.post('/login', {
+        email: email,
+        password: senha
+      });
+
+      const { token: tokenRecebido, user: usuarioRecebido } = response.data;
+
+      await signIn(usuarioRecebido, tokenRecebido);
+      alert("Logado com sucesso.");
+
+      if (usuarioRecebido.role === "admin" || usuarioRecebido.role === "superadmin") {
+        router.replace("/admin");
+      } else {
+        router.replace("/home");
+      }
+    } catch (error) {
+      alert("Acesso Negado: E-mail ou senha inválidos.");
+      console.log(error);
+    }
+  }
+  
+  function handleNavigateRegister() {
+    router.push("/register");
+  }
+
+  function handleNavigateRecuperar() {
+    router.push("/recuperar");
+  }
+
+  function handleNavigateHome() {
+    router.push("/home");
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.box}>
+        <View style={styles.header}>
+          <View style={styles.icon}>
+            <Ionicons name="cube-outline" size={30} color="white" />
+          </View>
+          <Text style={styles.titulo}>Bem-Vindo!</Text>
+          <Text>Entre na sua conta</Text>
+        </View>
+        <View style={styles.mid}>
+          <Text style={styles.txt}>Email</Text>
+          <View style={styles.input}>
+            <TextInput
+              placeholder="Digite seu Email"
+              onChangeText={setEmail}
+              value={email}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
+            ></TextInput>
+          </View>
+          <Text style={styles.txtSenha}>Senha</Text>
+          <View style={styles.input}>
+            <TextInput
+              placeholder="Digite sua senha"
+              secureTextEntry={true}
+              onChangeText={setSenha}
+              value={senha}
+              style={{ flex: 1, width: "100%", outlineStyle: "none", backgroundColor: "transparent" } as any}
+            ></TextInput>
+          </View>
+          <View style={styles.esqueciSenhaBox}>
+            <TouchableOpacity onPress={handleNavigateRecuperar}>
+              <Text style={styles.esqueciSenha}>Esqueci minha senha</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={styles.botao}>
+          <Botao
+            titulo="Entrar"
+            color="white"
+            border={2}
+            onPress={executarLogin}
+            borderColor="black"
+            backgroundColor={"black"}
+          ></Botao>
+          <View style={styles.cadastreBox}>
+            <Text>Não tem um conta?</Text>
+            <TouchableOpacity onPress={handleNavigateRegister}>
+              <Text style={styles.cadastre}>Cadastre-se</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 10,
+  },
+  box: {
+    borderWidth: 2,
+    width: "100%",
+    alignItems: "center",
+    gap: 20,
+    paddingTop: 30,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    borderRadius: 10,
+  },
+  icon: {
+    backgroundColor: "black",
+    padding: 10,
+    borderRadius: 999,
+    marginVertical: 15,
+    width: "100%",
+  },
+  header: {
+    alignItems: "center",
+  },
+  titulo: {
+    fontFamily: theme.fonts.bold,
+    fontSize: theme.fontSize.xl,
+  },
+  mid: {
+    width: "100%",
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    paddingHorizontal: 20,
+  },
+  input: {
+    borderWidth: 2,
+    width: "100%",
+    height: 50,
+    paddingHorizontal: 15,
+    marginTop: 10,
+    borderRadius: 8,
+    borderColor: theme.colors.cinzaClaro,
+    backgroundColor: theme.colors.grey1,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  txt: {
+    fontFamily: theme.fonts.bold,
+    fontSize: theme.fontSize.md,
+    paddingTop: 20,
+  },
+  txtSenha: {
+    fontFamily: theme.fonts.bold,
+    fontSize: theme.fontSize.md,
+    paddingTop: 40,
+  },
+  esqueciSenha: {
+    fontFamily: theme.fonts.bold,
+  },
+  esqueciSenhaBox: {
+    width: "100%",
+    alignItems: "flex-end",
+    paddingRight: 5,
+    paddingTop: 7,
+  },
+  botao: {
+    width: "100%",
+    paddingHorizontal: 10,
+    paddingTop: 20,
+  },
+  cadastre: {
+    fontFamily: theme.fonts.bold,
+  },
+  cadastreBox: {
+    flexDirection: "row",
+    gap: 10,
+    paddingTop: 10,
+    alignItems: "flex-end",
+    justifyContent: "flex-end",
+    paddingRight: 10,
+  },
+});
+</file>
+
+</files>

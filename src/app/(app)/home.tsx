@@ -1,20 +1,14 @@
 import { useState, useEffect, useContext } from "react"
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-  Image,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-  Modal,
+  View, Text, StyleSheet, FlatList, ActivityIndicator,
+  Image, TouchableOpacity, TextInput, ScrollView, Modal,
 } from "react-native"
 import { LinearGradient } from "expo-linear-gradient"
 import { Ionicons } from "@expo/vector-icons"
+import { useRouter } from "expo-router"
 import api from "../../services/authService"
 import { CartContext } from "../../context/CartContext"
+import { useTheme } from "../../context/ThemeContext"
 
 const CATEGORIAS = ["Todos", "Brinquedos", "Utilitários", "Decoração"]
 
@@ -24,16 +18,14 @@ export default function Home() {
   const [busca, setBusca] = useState("")
   const [categoriaAtiva, setCategoriaAtiva] = useState("Todos")
   const [produtoSelecionado, setProdutoSelecionado] = useState<any>(null)
-
+  const router = useRouter()
   const { adicionarAoCarrinho } = useContext(CartContext)
+  const { colors } = useTheme()
 
   async function buscarProdutos() {
     try {
-      const urlDaAPI = `http://192.168.5.235:3000/products`;
-      const response = await fetch(urlDaAPI);
-      const dados = await response.json();
-
-      setProdutos(dados)
+      const response = await api.get("/products")
+      setProdutos(response.data)
     } catch (error) {
       console.log("Erro ao buscar produtos:", error)
     } finally {
@@ -45,7 +37,7 @@ export default function Home() {
     buscarProdutos()
   }, [])
 
-  const produtosFiltrados = produtos.filter((p) => {
+  const produtosFiltrados = produtos.filter(p => {
     const nomeOk = p.title?.toLowerCase().includes(busca.toLowerCase())
     const categoriaOk = categoriaAtiva === "Todos" || p.category === categoriaAtiva
     return nomeOk && categoriaOk
@@ -53,28 +45,37 @@ export default function Home() {
 
   function renderizarProduto({ item }: any) {
     return (
-      <TouchableOpacity style={styles.card} onPress={() => setProdutoSelecionado(item)}>
+      <TouchableOpacity
+        style={[styles.card, { backgroundColor: colors.card }]}
+        onPress={() => setProdutoSelecionado(item)}
+      >
         {item.image_url ? (
           <Image source={{ uri: item.image_url }} style={styles.imagemCard} />
         ) : (
-          <View style={styles.imagemVazia} />
+          <View style={[styles.imagemVazia, { backgroundColor: colors.border }]} />
         )}
 
         <View style={styles.badgeEstoque}>
           <Text style={styles.badgeTexto}>Em Estoque</Text>
         </View>
 
-        {item.category ? (
+        {item.category && (
           <View style={styles.badgeCategoria}>
             <Text style={styles.badgeCategoriaTexto}>{item.category}</Text>
           </View>
-        ) : null}
+        )}
 
         <View style={styles.cardInfo}>
-          <Text style={styles.cardTitulo} numberOfLines={1}>{item.title}</Text>
-          <Text style={styles.cardDescricao} numberOfLines={2}>{item.description}</Text>
+          <Text style={[styles.cardTitulo, { color: colors.text }]} numberOfLines={1}>
+            {item.title}
+          </Text>
+          <Text style={[styles.cardDescricao, { color: colors.subtext }]} numberOfLines={2}>
+            {item.description}
+          </Text>
           <View style={styles.cardRodape}>
-            <Text style={styles.cardPreco}>R$ {Number(item.price).toFixed(2)}</Text>
+            <Text style={[styles.cardPreco, { color: colors.text }]}>
+              R$ {Number(item.price).toFixed(2)}
+            </Text>
             <TouchableOpacity
               style={styles.botaoComprar}
               onPress={() => adicionarAoCarrinho(item)}
@@ -88,62 +89,85 @@ export default function Home() {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient colors={["#9810FA", "#E60076"]} style={styles.header}>
         <View style={styles.headerTopo}>
           <Text style={styles.headerLogo}>Loja 3D</Text>
-          <View style={styles.headerIcones}>
-            <Ionicons name="notifications-outline" size={22} color="white" />
-          </View>
+          <Ionicons name="notifications-outline" size={22} color="white" />
         </View>
-
       </LinearGradient>
 
-      {/* Busca */}
-      <View style={styles.buscaContainer}>
-        <Ionicons name="search-outline" size={18} color="#888" style={styles.buscaIcone} />
+      <View style={[styles.buscaContainer, { backgroundColor: colors.card }]}>
+        <Ionicons name="search-outline" size={18} color={colors.subtext} style={styles.buscaIcone} />
         <TextInput
-          style={styles.buscaInput}
+          style={[styles.buscaInput, { color: colors.text }]}
           placeholder="Buscar produtos..."
-          placeholderTextColor="#888"
+          placeholderTextColor={colors.placeholder}
           value={busca}
           onChangeText={setBusca}
         />
       </View>
 
-      {/* Filtros */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.filtrosScroll}
         contentContainerStyle={styles.filtrosConteudo}
       >
-        {CATEGORIAS.map((cat) => (
+        {CATEGORIAS.map(cat => (
           <TouchableOpacity
             key={cat}
-            style={[styles.filtro, categoriaAtiva === cat && styles.filtroAtivo]}
+            style={[
+              styles.filtro,
+              { backgroundColor: colors.card, borderColor: colors.border },
+              categoriaAtiva === cat && styles.filtroAtivo,
+            ]}
             onPress={() => setCategoriaAtiva(cat)}
           >
-            <Text style={[styles.filtroTexto, categoriaAtiva === cat && styles.filtroTextoAtivo]}>
+            <Text style={[
+              styles.filtroTexto,
+              { color: colors.subtext },
+              categoriaAtiva === cat && styles.filtroTextoAtivo,
+            ]}>
               {cat}
             </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Lista */}
+      {/* Banner: Novo Orçamento */}
+      <TouchableOpacity
+        style={styles.bannerOrcamento}
+        onPress={() => router.push("/novo-orcamento")}
+        activeOpacity={0.85}
+      >
+        <LinearGradient
+          colors={["#9810FA", "#E60076"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.bannerGradient}
+        >
+          <Ionicons name="print-outline" size={26} color="white" />
+          <View style={styles.bannerTextos}>
+            <Text style={styles.bannerTitulo}>Tem uma peça para imprimir?</Text>
+            <Text style={styles.bannerSub}>Solicite um orçamento grátis →</Text>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+
       {carregando ? (
         <ActivityIndicator size="large" color="#9810FA" style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={produtosFiltrados}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={item => item.id.toString()}
           renderItem={renderizarProduto}
           contentContainerStyle={styles.lista}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <Text style={styles.listaVazia}>Nenhum produto encontrado.</Text>
+            <Text style={[styles.listaVazia, { color: colors.subtext }]}>
+              Nenhum produto encontrado.
+            </Text>
           }
         />
       )}
@@ -155,67 +179,58 @@ export default function Home() {
         onRequestClose={() => setProdutoSelecionado(null)}
       >
         {produtoSelecionado && (
-          <View style={styles.modalContainer}>
-            {/* Botão fechar */}
+          <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
             <TouchableOpacity
-              style={styles.modalBotaoFechar}
+              style={[styles.modalBotaoFechar, { backgroundColor: colors.card }]}
               onPress={() => setProdutoSelecionado(null)}
             >
-              <Ionicons name="arrow-back" size={24} color="#222" />
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {produtoSelecionado.image_url ? (
                 <Image source={{ uri: produtoSelecionado.image_url }} style={styles.modalImagem} />
               ) : (
-                <View style={styles.modalImagemVazia}>
+                <View style={[styles.modalImagemVazia, { backgroundColor: colors.border }]}>
                   <Ionicons name="cube-outline" size={80} color="#CCC" />
                 </View>
               )}
 
-              <View style={styles.modalConteudo}>
+              <View style={[styles.modalConteudo, { backgroundColor: colors.card }]}>
                 <View style={styles.badgeEstoque}>
                   <Text style={styles.badgeTexto}>✓ Em Estoque</Text>
                 </View>
-
-                <Text style={styles.modalTitulo}>{produtoSelecionado.title}</Text>
-                <Text style={styles.modalPreco}>R$ {Number(produtoSelecionado.price).toFixed(2)}</Text>
-
-                <View style={styles.divisor} />
-
-                <Text style={styles.modalSecao}>Descrição</Text>
-                <Text style={styles.modalDescricao}>
+                <Text style={[styles.modalTitulo, { color: colors.text }]}>
+                  {produtoSelecionado.title}
+                </Text>
+                <Text style={styles.modalPreco}>
+                  R$ {Number(produtoSelecionado.price).toFixed(2)}
+                </Text>
+                <View style={[styles.divisor, { backgroundColor: colors.divider }]} />
+                <Text style={[styles.modalSecao, { color: colors.text }]}>Descrição</Text>
+                <Text style={[styles.modalDescricao, { color: colors.subtext }]}>
                   {produtoSelecionado.description || "Sem descrição disponível."}
                 </Text>
-
-                <View style={styles.divisor} />
-
-                <Text style={styles.modalSecao}>Informações</Text>
-
-                <View style={styles.infoLinha}>
-                  <Ionicons name="cube-outline" size={18} color="#9810FA" />
-                  <Text style={styles.infoTexto}>Materiais: PLA, ABS, PETG, Resina</Text>
-                </View>
-                <View style={styles.infoLinha}>
-                  <Ionicons name="layers-outline" size={18} color="#9810FA" />
-                  <Text style={styles.infoTexto}>Impressão 3D de alta qualidade</Text>
-                </View>
-                <View style={styles.infoLinha}>
-                  <Ionicons name="storefront-outline" size={18} color="#9810FA" />
-                  <Text style={styles.infoTexto}>Retirada imediata na loja</Text>
-                </View>
-                <View style={styles.infoLinha}>
-                  <Ionicons name="checkmark-circle-outline" size={18} color="#9810FA" />
-                  <Text style={styles.infoTexto}>Acabamento profissional</Text>
-                </View>
+                <View style={[styles.divisor, { backgroundColor: colors.divider }]} />
+                <Text style={[styles.modalSecao, { color: colors.text }]}>Informações</Text>
+                {[
+                  ["cube-outline", "Materiais: PLA, ABS, PETG, Resina"],
+                  ["layers-outline", "Impressão 3D de alta qualidade"],
+                  ["storefront-outline", "Retirada imediata na loja"],
+                  ["checkmark-circle-outline", "Acabamento profissional"],
+                ].map(([icon, texto]) => (
+                  <View key={texto} style={styles.infoLinha}>
+                    <Ionicons name={icon as any} size={18} color="#9810FA" />
+                    <Text style={[styles.infoTexto, { color: colors.subtext }]}>{texto}</Text>
+                  </View>
+                ))}
               </View>
             </ScrollView>
 
-            {/* Rodapé fixo */}
-            <View style={styles.modalRodape}>
+            <View style={[styles.modalRodape, { backgroundColor: colors.card, borderTopColor: colors.divider }]}>
               <View>
-                <Text style={styles.modalRodapeLabel}>Total</Text>
-                <Text style={styles.modalRodapePreco}>
+                <Text style={[styles.modalRodapeLabel, { color: colors.subtext }]}>Total</Text>
+                <Text style={[styles.modalRodapePreco, { color: colors.text }]}>
                   R$ {Number(produtoSelecionado.price).toFixed(2)}
                 </Text>
               </View>
@@ -238,304 +253,91 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F5F5F5",
-  },
+  container: { flex: 1 },
 
-  header: {
-    paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  headerTopo: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  headerLogo: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "white",
-  },
-  headerIcones: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  banner: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  bannerCard: {
-    flex: 1,
-    borderRadius: 10,
-    padding: 12,
-  },
-  bannerTitulo: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 13,
-    marginBottom: 4,
-  },
-  bannerSub: {
-    color: "white",
-    fontSize: 11,
-    opacity: 0.9,
-  },
+  header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16 },
+  headerTopo: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  headerLogo: { fontSize: 20, fontWeight: "bold", color: "white" },
 
   buscaContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "white",
-    marginHorizontal: 16,
-    marginTop: 14,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    elevation: 2,
+    flexDirection: "row", alignItems: "center",
+    marginHorizontal: 16, marginTop: 14,
+    borderRadius: 10, paddingHorizontal: 12, elevation: 2,
   },
-  buscaIcone: {
-    marginRight: 8,
-  },
-  buscaInput: {
-    flex: 1,
-    height: 42,
-    fontSize: 14,
-    color: "#333",
-  },
+  buscaIcone: { marginRight: 8 },
+  buscaInput: { flex: 1, height: 42, fontSize: 14 },
 
-  filtrosScroll: {
-    marginTop: 12,
-    maxHeight: 40,
-  },
-  filtrosConteudo: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
+  filtrosScroll: { marginTop: 12, maxHeight: 40 },
+  filtrosConteudo: { paddingHorizontal: 16, gap: 8 },
   filtro: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: "white",
-    borderWidth: 1,
-    borderColor: "#DDD",
+    paddingHorizontal: 16, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1,
   },
-  filtroAtivo: {
-    backgroundColor: "#9810FA",
-    borderColor: "#9810FA",
-  },
-  filtroTexto: {
-    fontSize: 13,
-    color: "#555",
-  },
-  filtroTextoAtivo: {
-    color: "white",
-    fontWeight: "bold",
-  },
+  filtroAtivo: { backgroundColor: "#9810FA", borderColor: "#9810FA" },
+  filtroTexto: { fontSize: 13 },
+  filtroTextoAtivo: { color: "white", fontWeight: "bold" },
 
-  lista: {
-    padding: 16,
-    gap: 14,
-  },
-  listaVazia: {
-    textAlign: "center",
-    marginTop: 50,
-    color: "#888",
-    fontSize: 15,
-  },
+  bannerOrcamento: { marginHorizontal: 16, marginTop: 14, borderRadius: 14, overflow: "hidden", elevation: 3 },
+  bannerGradient: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, gap: 12 },
+  bannerTextos: { flex: 1 },
+  bannerTitulo: { color: "white", fontWeight: "bold", fontSize: 15 },
+  bannerSub: { color: "rgba(255,255,255,0.85)", fontSize: 12, marginTop: 2 },
 
-  card: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    overflow: "hidden",
-    elevation: 2,
-  },
-  imagemCard: {
-    width: "100%",
-    height: 180,
-    backgroundColor: "#EEE",
-  },
-  imagemVazia: {
-    width: "100%",
-    height: 180,
-    backgroundColor: "#DDD",
-  },
+  lista: { padding: 16, gap: 14 },
+  listaVazia: { textAlign: "center", marginTop: 50, fontSize: 15 },
+
+  card: { borderRadius: 12, overflow: "hidden", elevation: 2 },
+  imagemCard: { width: "100%", height: 180 },
+  imagemVazia: { width: "100%", height: 180 },
+
   badgeEstoque: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "#22C55E",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
+    position: "absolute", top: 10, right: 10,
+    backgroundColor: "#22C55E", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
   },
-  badgeTexto: {
-    color: "white",
-    fontSize: 11,
-    fontWeight: "bold",
-  },
+  badgeTexto: { color: "white", fontSize: 11, fontWeight: "bold" },
   badgeCategoria: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    backgroundColor: "#9810FA22",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
+    position: "absolute", top: 10, left: 10,
+    backgroundColor: "#9810FA22", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
   },
-  badgeCategoriaTexto: {
-    color: "#9810FA",
-    fontSize: 11,
-    fontWeight: "bold",
-  },
-  cardInfo: {
-    padding: 12,
-  },
-  cardTitulo: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#222",
-    marginBottom: 4,
-  },
-  cardDescricao: {
-    fontSize: 13,
-    color: "#666",
-    marginBottom: 10,
-  },
-  cardRodape: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  cardPreco: {
-    fontSize: 17,
-    fontWeight: "bold",
-    color: "#222",
-  },
-  botaoComprar: {
-    backgroundColor: "#1A1A1A",
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  botaoComprarTexto: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
+  badgeCategoriaTexto: { color: "#9810FA", fontSize: 11, fontWeight: "bold" },
 
-  // Modal
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "#F5F5F5",
-  },
+  cardInfo: { padding: 12 },
+  cardTitulo: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
+  cardDescricao: { fontSize: 13, marginBottom: 10 },
+  cardRodape: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  cardPreco: { fontSize: 17, fontWeight: "bold" },
+  botaoComprar: { backgroundColor: "#1A1A1A", paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8 },
+  botaoComprarTexto: { color: "white", fontWeight: "bold", fontSize: 14 },
+
+  modalContainer: { flex: 1 },
   modalBotaoFechar: {
-    position: "absolute",
-    top: 50,
-    left: 16,
-    zIndex: 10,
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 8,
-    elevation: 3,
+    position: "absolute", top: 50, left: 16, zIndex: 10,
+    borderRadius: 20, padding: 8, elevation: 3,
   },
-  modalImagem: {
-    width: "100%",
-    height: 320,
-    backgroundColor: "#EEE",
-  },
-  modalImagemVazia: {
-    width: "100%",
-    height: 320,
-    backgroundColor: "#EEE",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  modalImagem: { width: "100%", height: 320 },
+  modalImagemVazia: { width: "100%", height: 320, alignItems: "center", justifyContent: "center" },
   modalConteudo: {
-    backgroundColor: "white",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: -20,
-    padding: 20,
-    paddingBottom: 120,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    marginTop: -20, padding: 20, paddingBottom: 120,
   },
-  modalTitulo: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#222",
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  modalPreco: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#9810FA",
-    marginBottom: 16,
-  },
-  divisor: {
-    height: 1,
-    backgroundColor: "#EEE",
-    marginVertical: 16,
-  },
-  modalSecao: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: "#444",
-    marginBottom: 10,
-  },
-  modalDescricao: {
-    fontSize: 14,
-    color: "#666",
-    lineHeight: 22,
-  },
-  infoLinha: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-    gap: 10,
-  },
-  infoTexto: {
-    fontSize: 14,
-    color: "#555",
-  },
+  modalTitulo: { fontSize: 22, fontWeight: "bold", marginTop: 10, marginBottom: 8 },
+  modalPreco: { fontSize: 26, fontWeight: "bold", color: "#9810FA", marginBottom: 16 },
+  divisor: { height: 1, marginVertical: 16 },
+  modalSecao: { fontSize: 15, fontWeight: "bold", marginBottom: 10 },
+  modalDescricao: { fontSize: 14, lineHeight: 22 },
+  infoLinha: { flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 10 },
+  infoTexto: { fontSize: 14 },
   modalRodape: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "white",
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    paddingBottom: 28,
-    elevation: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#EEE",
-    gap: 12,
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    flexDirection: "row", alignItems: "center",
+    padding: 16, paddingBottom: 28, elevation: 10, borderTopWidth: 1, gap: 12,
   },
-  modalRodapeLabel: {
-    fontSize: 12,
-    color: "#888",
-  },
-  modalRodapePreco: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#222",
-  },
+  modalRodapeLabel: { fontSize: 12 },
+  modalRodapePreco: { fontSize: 18, fontWeight: "bold" },
   modalBotaoComprar: {
-    flex: 1,
-    backgroundColor: "#9810FA",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
+    flex: 1, backgroundColor: "#9810FA", flexDirection: "row",
+    alignItems: "center", justifyContent: "center",
+    paddingVertical: 14, borderRadius: 12, gap: 8,
   },
-  modalBotaoComprarTexto: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 15,
-  },
+  modalBotaoComprarTexto: { color: "white", fontWeight: "bold", fontSize: 15 },
 })
