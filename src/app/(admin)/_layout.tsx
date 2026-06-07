@@ -8,17 +8,16 @@ export default function AdminLayout() {
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (isLoading) return
+    if (!user) {
       router.replace("/login")
-      return
-    }
-    // Se for usuário comum, manda pra home normal
-    if (!isLoading && user && user.role === "user") {
-      router.replace("/(app)/home")
+    } else if (user.role !== "admin") {
+      router.replace("/(app)/home" as any)
     }
   }, [user, isLoading])
 
-  if (isLoading || !user || user.role === "user") return null
+  if (isLoading) return null
+  if (!user || user.role !== "admin") return null
 
   return (
     <Tabs
@@ -54,12 +53,13 @@ export default function AdminLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
-        name="orcamentos"
+        name="pedidos"
         options={{
-          title: "Orçamentos",
+          title: "Pedidos",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="document-text-outline" size={size} color={color} />
+            <Ionicons name="receipt-outline" size={size} color={color} />
           ),
         }}
       />

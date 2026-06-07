@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../../context/AuthContext";
@@ -9,29 +9,19 @@ export default function Perfil() {
   const { user, signOut } = useContext(AuthContext) as any;
 
   const realizarLogout = async () => {
-    try {
-      await signOut();
-      router.replace("/login");
-    } catch (error) {
-      console.log("Erro ao sair: ", error);
-      Alert.alert("Erro", "Não foi possível sair. Tente novamente.");
-    }
+    await signOut();
+    router.replace("/login");
   };
 
   function confirmarSaida() {
-    if (Platform.OS === "web") {
-      const querSair = window.confirm("Tem certeza que deseja sair?");
-      if (querSair) realizarLogout();
-    } else {
-      Alert.alert(
-        "Fazer Logout",
-        "Tem certeza que deseja sair?",
-        [
-          { text: "Ficar", style: "cancel" },
-          { text: "Sair", style: "destructive", onPress: realizarLogout },
-        ]
-      );
-    }
+    Alert.alert(
+      "Sair",
+      "Deseja mesmo sair?",
+      [
+        { text: "Não", style: "cancel" },
+        { text: "Sim", style: "destructive", onPress: realizarLogout },
+      ]
+    );
   }
 
   return (
@@ -43,10 +33,17 @@ export default function Perfil() {
         
         <View style={styles.badgeRole}>
           <Text style={styles.badgeTexto}>
-            {user?.role === 'admin' ? "Superadmin" : "Aldeão"}
+            {user?.role === 'admin' ? "Administrador" : "Cliente"}
           </Text>
         </View>
       </View>
+
+      {/* Meus Pedidos */}
+      <TouchableOpacity style={styles.botaoPedidos} onPress={() => router.push("/(app)/meus-pedidos" as any)}>
+        <Ionicons name="receipt-outline" size={22} color="#9810FA" />
+        <Text style={styles.botaoPedidosTexto}>Meus Pedidos</Text>
+        <Ionicons name="chevron-forward" size={18} color="#9810FA" />
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.botaoSair} onPress={confirmarSaida}>
         <Ionicons name="log-out-outline" size={22} color="white" />
@@ -91,6 +88,24 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 13,
     textTransform: "capitalize",
+  },
+  botaoPedidos: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    width: "80%",
+    marginBottom: 16,
+    elevation: 2,
+    gap: 10,
+  },
+  botaoPedidosTexto: {
+    flex: 1,
+    color: "#222",
+    fontWeight: "bold",
+    fontSize: 15,
   },
   botaoSair: {
     backgroundColor: "#9810FA",

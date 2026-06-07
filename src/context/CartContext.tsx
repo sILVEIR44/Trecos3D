@@ -14,6 +14,7 @@ interface CartContextData {
   removerDoCarrinho: (id: string | number) => void;
   aumentarQuantidade: (id: string | number) => void;
   diminuirQuantidade: (id: string | number) => void;
+  limparCarrinho: () => void;
 }
 
 export const CartContext = createContext<CartContextData>({} as CartContextData);
@@ -32,10 +33,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : item
         )
       );
-      alert("Uma nova unidade foi adicionada ao seu carrinho!");
+      alert("Produto adicionado ao carrinho!");
     } else {
       setCarrinho([...carrinho, { ...produto, quantidade: 1 }]);
-      alert("Novo item adicionado ao carrinho!");
+      alert("Produto adicionado ao carrinho!");
     }
   }
 
@@ -51,6 +52,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }
 
+  function limparCarrinho() {
+    setCarrinho([])
+  }
+
   function diminuirQuantidade(id: string | number) {
     // Se quantidade for 1 e diminuir, remove o item
     setCarrinho(
@@ -63,7 +68,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <CartContext.Provider value={{ carrinho, adicionarAoCarrinho, removerDoCarrinho, aumentarQuantidade, diminuirQuantidade }}>
+    <CartContext.Provider value={{ carrinho, adicionarAoCarrinho, removerDoCarrinho, aumentarQuantidade, diminuirQuantidade, limparCarrinho }}>
       {children}
     </CartContext.Provider>
   );

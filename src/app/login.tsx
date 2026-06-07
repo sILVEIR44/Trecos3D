@@ -18,8 +18,8 @@ export default function Login() {
 
   useEffect(() => {
     if (token && user) {
-      if (user.role === 'admin' || user.role === 'superadmin') {
-        router.replace("/admin");
+      if (user.role === 'admin') {
+        router.replace("/(admin)/dashboard" as any);
       } else { 
         router.replace("/home");
       }
@@ -39,13 +39,14 @@ export default function Login() {
       alert("Logado com sucesso.");
 
       if (usuarioRecebido.role === "admin" || usuarioRecebido.role === "superadmin") {
-        router.replace("/admin");
+        router.replace("/(admin)/dashboard" as any);
       } else {
         router.replace("/home");
       }
     } catch (error) {
-      alert("Acesso Negado: E-mail ou senha inválidos.");
       console.log(error);
+      alert("Acesso Negado: E-mail ou senha inválidos.");
+
     }
   }
   

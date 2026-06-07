@@ -228,6 +228,54 @@ app.post('/products', verificarToken, verificarAdmin, async (req, res) => {
   }
 });
 
+// rota editar produto (apenas admin)
+app.put('/products/:id', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { title, description, price, stock, image_url } = req.body;
+
+    if (!title || !price) {
+      return res.status(400).json({ error: 'Título e preço são obrigatórios.' });
+    }
+
+    const query = `
+      UPDATE products
+      SET title = $1, description = $2, price = $3, stock = $4, image_url = $5
+      WHERE id = $6
+      RETURNING *;
+    `;
+    const values = [title, description, price, stock ?? 0, image_url || '', id];
+    const result = await db.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Produto não encontrado.' });
+    }
+
+    res.json({ message: 'Produto atualizado com sucesso!', product: result.rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno ao atualizar o produto.' });
+  }
+});
+
+// rota deletar produto (apenas admin)
+app.delete('/products/:id', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const result = await db.query('DELETE FROM products WHERE id = $1 RETURNING *', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Produto não encontrado.' });
+    }
+
+    res.json({ message: 'Produto removido com sucesso!', product: result.rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno ao remover o produto.' });
+  }
+});
+
 //rota Listar produtos (aberta para todos)
 app.get('/products', async (req, res) => {
   try {
@@ -312,7 +360,7 @@ app.put('/quotes/:id/status', verificarToken, verificarAdmin, async (req, res) =
 //rota Criar pedido
 app.post('/orders', verificarToken, async (req, res) => {
   try {
-    const { quote_id, total_value, item_count } = req.body;
+    const { quote_id, total_value, item_count, items } = req.body;
     
     if (!total_value || !item_count) {
       return res.status(400).json({ error: 'O valor total e a quantidade de itens são obrigatórios!' });
@@ -327,14 +375,29 @@ app.post('/orders', verificarToken, async (req, res) => {
       descontoAplicado = true;
     }
 
+    // Busca dados do usuário para salvar no pedido
+    const userResult = await db.query('SELECT name, email FROM users WHERE id = $1', [req.userId]);
+    const userName = userResult.rows[0]?.name || '';
+    const userEmail = userResult.rows[0]?.email || '';
+
     const query = `
-    INSERT INTO orders (user_id, quote_id, total_value, item_count, status)
-    VALUES ($1, $2, $3, $4, 'preparing')
+    INSERT INTO orders (user_id, quote_id, total_value, item_count, status, items, user_name, user_email)
+    VALUES ($1, $2, $3, $4, 'preparing', $5, $6, $7)
     RETURNING *;
     `;
 
-    const values = [req.userId, quote_id || null, valorFinalCalculado, item_count];
+    const values = [req.userId, quote_id || null, valorFinalCalculado, item_count, JSON.stringify(items || []), userName, userEmail];
     const result = await db.query(query, values);
+
+    // Desconta estoque dos produtos comprados
+    if (items && Array.isArray(items)) {
+      for (const item of items) {
+        await db.query(
+          `UPDATE products SET stock = GREATEST(stock - $1, 0) WHERE id = $2`,
+          [item.quantidade, item.id]
+        );
+      }
+    }
 
     res.status(201).json({
       message: descontoAplicado
@@ -347,6 +410,59 @@ app.post('/orders', verificarToken, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Erro interno ao processar o pedido.' });
+  }
+});
+
+// listar todos os pedidos (admin)
+app.get('/orders', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM orders ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno ao listar pedidos.' });
+  }
+});
+
+// listar pedidos do usuário logado
+app.get('/orders/mine', verificarToken, async (req, res) => {
+  try {
+    const result = await db.query(
+      'SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC',
+      [req.userId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro interno ao listar seus pedidos.' });
+  }
+});
+
+// marcar pedido como concluído (admin)
+app.put('/orders/:id/status', verificarToken, verificarAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const id = req.params.id;
+
+    console.log('Atualizando pedido:', id, 'para status:', status, '| role:', req.userRole);
+
+    if (!['preparing', 'completed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ error: 'Status inválido.' });
+    }
+
+    const result = await db.query(
+      'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
+      [status, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Pedido não encontrado.' });
+    }
+
+    res.json({ message: `Pedido marcado como ${status}!`, order: result.rows[0] });
+  } catch (error) {
+    console.error('Erro detalhado:', error);
+    res.status(500).json({ error: 'Erro interno ao atualizar pedido.' });
   }
 });
 

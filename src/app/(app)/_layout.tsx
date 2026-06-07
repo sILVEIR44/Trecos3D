@@ -9,62 +9,55 @@ export default function AppLayout() {
   const router = useRouter();
 
   useEffect(() => {
-    // Se terminou de carregar e não tem usuário logado, manda pro login
-    if (!isLoading && !user) {
-      router.replace("/login");
+    if (isLoading) return;
+    if (user && (user.role === "admin")) {
+      router.replace("/(admin)/dashboard" as any);
     }
   }, [user, isLoading]);
 
-  // Enquanto verifica o login, não renderiza nada
-  if (isLoading || !user) return null;
+  if (isLoading) return null;
+  if (!user) {
+    router.replace("/login");
+    return null;
+  }
+  if (user.role === "admin") return null;
 
   return (
-      <CartProvider>
-        <Tabs
-          screenOptions={{
-            headerShown: false,
-            tabBarActiveTintColor: "black",
-            tabBarInactiveTintColor: "gray",
-            tabBarStyle: {
-              backgroundColor: "#ffffff",
-              borderTopWidth: 1,
-              borderTopColor: "#e0e0e0",
-              height: 65,
-              paddingBottom: 10,
-              paddingTop: 5,
-            },
+    <CartProvider>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: "black",
+          tabBarInactiveTintColor: "gray",
+          tabBarStyle: {
+            backgroundColor: "#ffffff",
+            borderTopWidth: 1,
+            borderTopColor: "#e0e0e0",
+            height: 65,
+            paddingBottom: 10,
+            paddingTop: 5,
+          },
+        }}
+      >
+        <Tabs.Screen
+          name="home"
+          options={{
+            title: "Loja",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="home-outline" size={size} color={color} />
+            ),
           }}
-        >
-          <Tabs.Screen
-            name="home"
-            options={{
-              title: "Loja",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="home-outline" size={size} color={color} />
-              ),
-            }}
-          />
+        />
 
-          <Tabs.Screen
-            name="carrinho"
-            options={{
-              title: "Carrinho",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="cart-outline" size={size} color={color} />
-              ),
-            }}
-          />
-
-          <Tabs.Screen
-            name="admin"
-            options={{
-              title: "Dashboard",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="stats-chart-outline" size={size} color={color} />
-              ),
-              href: user?.role === 'admin' ? '/admin' : null,
-            }}
-            />
+        <Tabs.Screen
+          name="carrinho"
+          options={{
+            title: "Carrinho",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="cart-outline" size={size} color={color} />
+            ),
+          }}
+        />
 
         <Tabs.Screen
           name="perfil"
@@ -84,6 +77,11 @@ export default function AppLayout() {
               <Ionicons name="bulb-outline" size={size} color={color} />
             ),
           }}
+        />
+
+        <Tabs.Screen
+          name="meus-pedidos"
+          options={{ href: null }}
         />
       </Tabs>
     </CartProvider>

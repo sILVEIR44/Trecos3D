@@ -1,5 +1,5 @@
 import { useContext } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
 import { useRouter } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
 import { AuthContext } from "../../context/AuthContext"
@@ -8,20 +8,9 @@ export default function PerfilAdmin() {
   const router = useRouter()
   const { user, signOut } = useContext(AuthContext)
 
-  async function realizarLogout() {
-    try {
-      await signOut()
-      router.replace("/login")
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível sair. Tente novamente.")
-    }
-  }
-
-  function confirmarSaida() {
-    Alert.alert("Fazer Logout", "Tem certeza que deseja sair?", [
-      { text: "Ficar", style: "cancel" },
-      { text: "Sair", style: "destructive", onPress: realizarLogout },
-    ])
+  function realizarLogout() {
+    router.replace("/login")
+    setTimeout(() => signOut(), 300)
   }
 
   return (
@@ -35,7 +24,7 @@ export default function PerfilAdmin() {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.botaoSair} onPress={confirmarSaida}>
+      <TouchableOpacity style={styles.botaoSair} onPress={realizarLogout}>
         <Ionicons name="log-out-outline" size={22} color="white" />
         <Text style={styles.botaoSairTexto}>Fazer Logout</Text>
       </TouchableOpacity>

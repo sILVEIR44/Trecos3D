@@ -1,14 +1,16 @@
 import React, { useContext, useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { CartContext } from "../../context/CartContext";
+import { CartContext, ProdutoCarrinho } from "../../context/CartContext";
 import { AuthContext } from "../../context/AuthContext";
 import { useRouter } from "expo-router";
+import api from "../../services/authService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Carrinho() {
   const router = useRouter();
-  const { carrinho, removerDoCarrinho, aumentarQuantidade, diminuirQuantidade } = useContext(CartContext) as any;
-  const { token } = useContext(AuthContext) as any;
+  const { carrinho, removerDoCarrinho, aumentarQuantidade, diminuirQuantidade, limparCarrinho } = useContext(CartContext) as any;
+  const { token, user } = useContext(AuthContext) as any;
   
   const [ listaOrcamentos, setListaOrcamentos ] = useState<any[]>([]);
   const [ carregandoOrcamentos, setCarregandoOrcamentos ] = useState(true);
@@ -16,10 +18,8 @@ export default function Carrinho() {
   // A vossa magia de buscar as peças 3D
   const buscarMeusOrcamentos = async () => {
     try {
-      const urlAPI = `http://192.168.5.235:3000/orcamentos/1`; 
-      const resposta = await fetch(urlAPI);
-      const dados = await resposta.json();
-      setListaOrcamentos(dados);
+      const response = await api.get(`/orcamentos/${user?.id}`);
+      setListaOrcamentos(response.data);
     } catch (error) {
       console.error("Erro ao buscar orçamentos:", error);
     } finally {
@@ -31,14 +31,13 @@ export default function Carrinho() {
     buscarMeusOrcamentos();
   }, []);
 
-  // A armadura visual do vosso aliado para confirmar a remoção
-  function confirmarRemocao(id: string | number, titulo: string) {
+  function confirmarRemocao(id: string | number) {
     Alert.alert(
       "Remover item",
-      `Deseja remover "${titulo}" do carrinho?`,
+      "Deseja mesmo remover?",
       [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Remover", style: "destructive", onPress: () => removerDoCarrinho(id) },
+        { text: "Não", style: "cancel" },
+        { text: "Sim", style: "destructive", onPress: () => removerDoCarrinho(id) },
       ]
     );
   }
@@ -72,7 +71,7 @@ export default function Carrinho() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.btnRemover} onPress={() => confirmarRemocao(item.id, item.title)}>
+        <TouchableOpacity style={styles.btnRemover} onPress={() => confirmarRemocao(item.id)}>
           <Ionicons name="trash-outline" size={20} color="#EF4444" />
         </TouchableOpacity>
       </View>
@@ -91,8 +90,9 @@ export default function Carrinho() {
       return;
     }
     
+    const token = await AsyncStorage.getItem("@Trecos3D:token");
     if (!token) {
-      alert("Acesso Negado: A pulseira de identificação sumiu! Por favor, faça login novamente.");
+      Alert.alert("Sessão expirada", "Por favor, faça login novamente.");
       return;
     }
 
@@ -101,32 +101,27 @@ export default function Carrinho() {
     const totalItens = quantidadeProdutos + quantidadeOrcamentos;
 
     try {
-      const urlAPI = `http://192.168.5.235:3000/orders`; 
-      const resposta = await fetch(urlAPI, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
-        body: JSON.stringify({
-          quote_id: null, 
-          total_value: valorTotal,
-          item_count: totalItens
-        })
-      });
+      await api.post('/orders', {
+        total_value: valorTotal,
+        item_count: totalItens,
+        items: carrinho.map((item: ProdutoCarrinho) => ({
+          id: item.id,
+          title: item.title,
+          price: item.price,
+          quantidade: item.quantidade,
+        })),
+      })
 
-      const dados = await resposta.json();
+      limparCarrinho()
 
-      if (resposta.ok) {
-        alert("Sucesso! O seu pedido foi enviado! \n\n" + dados.message);
-        router.replace("/home");
-      } else {
-        alert("Erro, Algo deu errado ao finalizar." + dados.error);
-      }
-
+      Alert.alert(
+        "🎉 Pedido finalizado com sucesso!",
+        "Seu pedido foi recebido e está sendo preparado. Acompanhe o status em 'Meus Pedidos'.",
+        [{ text: "Voltar à Loja", onPress: () => router.replace("/home") }]
+      )
     } catch (error) {
-      console.error("Erro ao finalizar pedido:", error);
-      alert("Erro de Comunicação. Não foi possível enviar o pedido. Tente novamente mais tarde.");
+      console.error("Erro ao finalizar pedido:", error)
+      Alert.alert("Erro", "Não foi possível finalizar o pedido. Tente novamente.")
     }
   };
 
@@ -328,6 +323,58 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalBox: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 24,
+    width: "80%",
+    alignItems: "center",
+    gap: 12,
+  },
+  modalTitulo: {
+    fontSize: 17,
+    fontWeight: "bold",
+    color: "#222",
+  },
+  modalTexto: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+  },
+  modalBotoes: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+  },
+  modalBotaoCancelar: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#DDD",
+    alignItems: "center",
+  },
+  modalBotaoCancelarTexto: {
+    color: "#555",
+    fontWeight: "bold",
+  },
+  modalBotaoRemover: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#EF4444",
+    alignItems: "center",
+  },
+  modalBotaoRemoverTexto: {
+    color: "white",
+    fontWeight: "bold",
   },
   tituloSecao: {
     fontSize: 18,
