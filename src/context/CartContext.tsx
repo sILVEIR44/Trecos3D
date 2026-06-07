@@ -33,10 +33,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : item
         )
       );
-      alert("Uma nova unidade foi adicionada ao seu carrinho!");
+      alert("Produto adicionado ao carrinho!");
     } else {
       setCarrinho([...carrinho, { ...produto, quantidade: 1 }]);
-      alert("Novo item adicionado ao carrinho!");
+      alert("Produto adicionado ao carrinho!");
     }
   }
 
@@ -50,6 +50,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         item.id === id ? { ...item, quantidade: item.quantidade + 1 } : item
       )
     );
+  }
+
+  function limparCarrinho() {
+    setCarrinho([])
   }
 
   function diminuirQuantidade(id: string | number) {

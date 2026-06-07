@@ -32,7 +32,7 @@ function verificarAdmin(req, res, next) {
     if (req.userRole !== 'admin') {
         return res.status(403).json({ error: 'Acesso negado! Apenas o Superadmin tem permissão para entrar aqui.'});
     }
-    next();//pd passar 
+    next();//pd passar
 }
 
 module.exports = { verificarToken,

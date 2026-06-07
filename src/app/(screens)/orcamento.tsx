@@ -1,4 +1,5 @@
 import React, { useState, useContext } from 'react';
+import api from '../../services/authService';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, Platform, TextInput } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { AuthContext } from '../../context/AuthContext';
@@ -108,16 +109,9 @@ export default function Orcamento() {
       pacote.append('user_id', String(user?.id || 1));
 
       // dispara o pacote para API
-      const urlDaAPI = 'http://192.168.5.235:3000/orcamentos'; 
-
-      const resposta = await fetch(urlDaAPI, {
-        method: 'POST',
-        body: pacote,
+      const resposta = await api.post('/orcamentos', pacote, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-
-      if (!resposta.ok) {
-        throw new Error('Falha ao comunicar com os portões da API.');
-      }
 
       Alert.alert('Sucesso!', 'O orçamento foi enviado com sucesso!');
       
