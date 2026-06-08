@@ -36,7 +36,7 @@ Trecos3D/
 
 ## Configuração do Banco de Dados
 
-O projeto usa **Supabase** (PostgreSQL na nuvem). As credenciais ficam num arquivo `.env` dentro da pasta `api-impressao-3d/`.
+O projeto usa **Supabase** (PostgreSQL na nuvem). O banco já está configurado — basta criar o arquivo `.env` com as credenciais.
 
 ### Criar o arquivo `.env`
 
@@ -49,66 +49,7 @@ SUPABASE_KEY=sua_chave_anon_do_supabase
 JWT_SECRET=uma_chave_secreta_qualquer
 ```
 
-> Para obter esses valores: acesse [supabase.com](https://supabase.com) → seu projeto → **Settings → Database** (connection string) e **Settings → API** (URL e chave anon).
-
-### Tabelas necessárias
-
-Execute no **SQL Editor** do Supabase para criar as tabelas:
-
-```sql
-CREATE TABLE IF NOT EXISTS users (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  email VARCHAR(150) UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  phone VARCHAR(20) DEFAULT '',
-  role VARCHAR(20) DEFAULT 'user',
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS products (
-  id SERIAL PRIMARY KEY,
-  title VARCHAR(150) NOT NULL,
-  description TEXT,
-  price NUMERIC(10,2) NOT NULL,
-  image_url TEXT,
-  category VARCHAR(100) DEFAULT 'Utilitários',
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS orders (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-  total_value NUMERIC(10,2) NOT NULL,
-  item_count INTEGER NOT NULL DEFAULT 1,
-  status VARCHAR(30) DEFAULT 'preparing',
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS order_items (
-  id SERIAL PRIMARY KEY,
-  order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
-  product_title TEXT NOT NULL,
-  quantity INTEGER NOT NULL DEFAULT 1,
-  unit_price NUMERIC(10,2) NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS quotes (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-  file_url TEXT,
-  material VARCHAR(20) DEFAULT 'PLA',
-  estimated_grams NUMERIC(8,2),
-  estimated_hours NUMERIC(6,2),
-  calculated_price NUMERIC(10,2),
-  status VARCHAR(20) DEFAULT 'pending',
-  phone VARCHAR(20) DEFAULT '',
-  tamanho VARCHAR(100) DEFAULT '',
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-> **Observação:** o servidor já executa migrações automáticas ao iniciar (adiciona colunas que faltam), então as tabelas existentes serão atualizadas automaticamente.
+> Peça os valores desse arquivo para o responsável pelo projeto.
 
 ---
 
@@ -171,15 +112,6 @@ npm start
 
 Vai abrir uma janela no navegador com um QR Code. Escaneie com o app **Expo Go** no celular.
 
----
-
-## Criando uma conta Admin
-
-Por padrão, todo cadastro cria uma conta de usuário comum. Para criar um admin, registre normalmente e depois execute no SQL Editor do Supabase:
-
-```sql
-UPDATE users SET role = 'admin' WHERE email = 'seu@email.com';
-```
 
 ---
 
