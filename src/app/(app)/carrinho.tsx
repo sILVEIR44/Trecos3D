@@ -65,7 +65,6 @@ export default function Carrinho() {
     );
   }
 
-  // Total só conta produtos da loja — orçamentos são processados separadamente pelo admin
   const valorTotal = carrinho.reduce((total: number, item: any) => total + (item.price * item.quantidade), 0);
 
   const finalizarPedido = async () => {
@@ -81,7 +80,6 @@ export default function Carrinho() {
     setFinalizando(true);
     const totalItens = carrinho.reduce((acc: number, item: any) => acc + item.quantidade, 0);
 
-    // Apenas itens de produtos da loja — orçamentos ficam pendentes no admin
     const itensDoPedido = carrinho.map((item: any) => ({
       product_title: item.material_selecionado
         ? `${item.title} — Material: ${item.material_selecionado}`
@@ -113,7 +111,6 @@ export default function Carrinho() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
 
-      {/* Banner de sucesso */}
       {sucesso && (
         <View style={styles.bannerSucesso}>
           <Ionicons name="checkmark-circle" size={22} color="white" />
@@ -123,7 +120,6 @@ export default function Carrinho() {
 
       <Text style={[styles.header, { color: colors.text }]}>Meu Carrinho</Text>
 
-      {/* Itens da loja */}
       {carrinho.length === 0 ? (
         <View style={[styles.vazio, { backgroundColor: colors.card }]}>
           <Ionicons name="cart-outline" size={40} color="#CCC" />
@@ -140,7 +136,6 @@ export default function Carrinho() {
       )}
 
 
-      {/* Rodapé */}
       <View style={[styles.rodape, { backgroundColor: colors.card, borderTopColor: colors.divider }]}>
         <View style={styles.rodapeInfo}>
           <Text style={[styles.rodapeLabel, { color: colors.subtext }]}>Valor Total Final</Text>

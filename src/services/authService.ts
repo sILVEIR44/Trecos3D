@@ -6,7 +6,6 @@ const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
-// Injeta o token JWT em todas as requisições automaticamente
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem('@Trecos3D:token');
   if (token) {

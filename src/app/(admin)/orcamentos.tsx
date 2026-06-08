@@ -131,7 +131,6 @@ export default function Orcamentos() {
         />
       )}
 
-      {/* Botão atualizar */}
       <TouchableOpacity style={styles.botaoAtualizar} onPress={buscarOrcamentos}>
         <Ionicons name="refresh-outline" size={18} color="#9810FA" />
         <Text style={styles.botaoAtualizarTexto}>Atualizar</Text>

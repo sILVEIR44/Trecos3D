@@ -57,7 +57,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   function diminuirQuantidade(id: string | number) {
-    // Se quantidade for 1 e diminuir, remove o item
     setCarrinho(
       carrinho
         .map(item =>

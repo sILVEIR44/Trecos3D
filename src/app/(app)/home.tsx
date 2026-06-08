@@ -28,7 +28,6 @@ export default function Home() {
       const response = await api.get("/products")
       setProdutos(response.data)
     } catch (error) {
-      // erro silencioso
     } finally {
       setCarregando(false)
     }
@@ -47,7 +46,6 @@ export default function Home() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header fixo */}
       <LinearGradient colors={["#9810FA", "#E60076"]} style={styles.header}>
         <View style={styles.headerTopo}>
           <Text style={styles.headerLogo}>Loja 3D</Text>
@@ -57,13 +55,11 @@ export default function Home() {
         </View>
       </LinearGradient>
 
-      {/* Todo o conteúdo num único ScrollView */}
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Busca */}
         <View style={[styles.buscaContainer, { backgroundColor: colors.card }]}>
           <Ionicons name="search-outline" size={18} color={colors.subtext} style={styles.buscaIcone} />
           <TextInput
@@ -75,7 +71,6 @@ export default function Home() {
           />
         </View>
 
-        {/* Filtros por categoria */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -104,7 +99,6 @@ export default function Home() {
           ))}
         </ScrollView>
 
-        {/* Banner orçamento */}
         <TouchableOpacity
           style={styles.bannerOrcamento}
           onPress={() => router.push("/novo-orcamento")}
@@ -124,7 +118,6 @@ export default function Home() {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Produtos */}
         <View style={styles.lista}>
           {carregando ? (
             <ActivityIndicator size="large" color="#9810FA" style={{ marginVertical: 40 }} />
@@ -175,7 +168,6 @@ export default function Home() {
         </View>
       </ScrollView>
 
-      {/* Modal de detalhe do produto */}
       <Modal
         visible={produtoSelecionado !== null}
         animationType="slide"

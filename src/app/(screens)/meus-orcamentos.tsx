@@ -61,7 +61,6 @@ export default function MeusOrcamentos() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Cabeçalho */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.btnVoltar}>
           <Ionicons name="arrow-back" size={24} color="white" />

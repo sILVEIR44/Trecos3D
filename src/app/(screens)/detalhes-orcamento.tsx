@@ -73,7 +73,6 @@ export default function DetalhesOrcamento() {
 
   return (
     <View style={styles.container}>
-      {/* Cabeçalho */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.btnVoltar}>
           <Ionicons name="arrow-back" size={24} color="white" />
@@ -84,7 +83,6 @@ export default function DetalhesOrcamento() {
 
       <ScrollView contentContainerStyle={styles.conteudo}>
 
-        {/* Foto da peça */}
         {orcamento.file_url ? (
           <Image source={{ uri: orcamento.file_url }} style={styles.imagem} />
         ) : (
@@ -94,7 +92,6 @@ export default function DetalhesOrcamento() {
           </View>
         )}
 
-        {/* Dados do cliente */}
         <View style={styles.card}>
           <Text style={styles.secaoTitulo}>Cliente</Text>
           <View style={styles.linha}>
@@ -113,7 +110,6 @@ export default function DetalhesOrcamento() {
           ) : null}
         </View>
 
-        {/* Detalhes da peça */}
         <View style={styles.card}>
           <Text style={styles.secaoTitulo}>Detalhes da Peça</Text>
           <View style={styles.linha}>
@@ -143,7 +139,6 @@ export default function DetalhesOrcamento() {
 
       </ScrollView>
 
-      {/* Botões de ação */}
       {orcamento.status === "pending" && (
         <View style={styles.rodape}>
           <TouchableOpacity

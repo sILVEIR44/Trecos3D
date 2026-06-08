@@ -40,7 +40,6 @@ export default function PerfilAdmin() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.conteudo}
     >
-      {/* Cabeçalho */}
       <View style={styles.cabecalho}>
         <View style={styles.avatarBox}>
           <Text style={styles.avatarLetra}>
@@ -54,7 +53,6 @@ export default function PerfilAdmin() {
         </View>
       </View>
 
-      {/* Segurança */}
       <Text style={[styles.secaoTitulo, { color: colors.subtext }]}>Segurança</Text>
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <TouchableOpacity
@@ -71,7 +69,6 @@ export default function PerfilAdmin() {
         </TouchableOpacity>
       </View>
 
-      {/* Preferências */}
       <Text style={[styles.secaoTitulo, { color: colors.subtext }]}>Preferências</Text>
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <View style={[styles.linhaCard, { borderBottomWidth: 0 }]}>
@@ -88,7 +85,6 @@ export default function PerfilAdmin() {
         </View>
       </View>
 
-      {/* Suporte */}
       <Text style={[styles.secaoTitulo, { color: colors.subtext }]}>Suporte</Text>
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <TouchableOpacity
@@ -109,7 +105,6 @@ export default function PerfilAdmin() {
         </TouchableOpacity>
       </View>
 
-      {/* Rodapé */}
       <View style={styles.rodape}>
         <TouchableOpacity style={styles.botaoSair} onPress={confirmarSaida}>
           <Ionicons name="log-out-outline" size={20} color="white" />

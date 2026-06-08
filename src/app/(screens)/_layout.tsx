@@ -8,6 +8,5 @@ export default function ScreensLayout() {
   if (isLoading) return null;
   if (!user) return <Redirect href="/login" />;
 
-  // Acessível por qualquer usuário autenticado (user ou admin)
   return <Stack screenOptions={{ headerShown: false }} />;
 }

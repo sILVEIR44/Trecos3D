@@ -27,24 +27,20 @@ export default function Login() {
   }
 
   async function handleRegister() {
-    //verifica se ta preenchido
     if (!nome || !email || !telefone || !senha) {
       alert("Atenção! Preencha todos os campos do pergaminho.");
       return;
     }
-    // verifica telefone mínimo (10 dígitos)
     const digits = telefone.replace(/\D/g, "");
     if (digits.length < 10) {
       alert("Informe um número de telefone válido.");
       return;
     }
-    // verifica se as senhas tao iguais
     if (senha !== confirmaSenha) {
       alert("As senhas não coincidem.");
       return;
     }
     try {
-      //envia pro servidor
       const response = await api.post('/register', {
         name: nome,
         email: email,
@@ -57,8 +53,6 @@ export default function Login() {
       setTelefone("");
       setSenha("");
       setConfirmaSenha("");
-      
-      //vai pra tela de login agora
       router.replace("/login");
 
     } catch (error) {

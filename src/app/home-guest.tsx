@@ -46,7 +46,6 @@ export default function HomeGuest() {
     return nomeOk && categoriaOk
   })
 
-  // Qualquer ação que precise de login manda para o login
   function irParaLogin() {
     setProdutoSelecionado(null)
     router.replace("/login")
@@ -87,11 +86,9 @@ export default function HomeGuest() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <LinearGradient colors={["#9810FA", "#E60076"]} style={styles.header}>
         <View style={styles.headerTopo}>
           <Text style={styles.headerLogo}>Loja 3D</Text>
-          {/* Botão de login no canto */}
           <TouchableOpacity style={styles.botaoLogin} onPress={irParaLogin}>
             <Ionicons name="log-in-outline" size={18} color="#9810FA" />
             <Text style={styles.botaoLoginTexto}>Entrar</Text>
@@ -100,7 +97,6 @@ export default function HomeGuest() {
 
       </LinearGradient>
 
-      {/* Busca */}
       <View style={styles.buscaContainer}>
         <Ionicons name="search-outline" size={18} color="#888" style={styles.buscaIcone} />
         <TextInput
@@ -112,7 +108,6 @@ export default function HomeGuest() {
         />
       </View>
 
-      {/* Filtros */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -132,7 +127,6 @@ export default function HomeGuest() {
         ))}
       </ScrollView>
 
-      {/* Lista */}
       {carregando ? (
         <ActivityIndicator size="large" color="#9810FA" style={{ marginTop: 40 }} />
       ) : (
@@ -148,7 +142,6 @@ export default function HomeGuest() {
         />
       )}
 
-      {/* Modal detalhe */}
       <Modal
         visible={produtoSelecionado !== null}
         animationType="slide"
@@ -205,7 +198,6 @@ export default function HomeGuest() {
               </View>
             </ScrollView>
 
-            {/* Rodapé — manda pro login */}
             <View style={styles.modalRodape}>
               <View>
                 <Text style={styles.modalRodapeLabel}>Total</Text>

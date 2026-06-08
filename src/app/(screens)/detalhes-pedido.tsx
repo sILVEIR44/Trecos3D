@@ -102,7 +102,6 @@ export default function DetalhesPedido() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
-      {/* Cabeçalho roxo */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.btnVoltar}>
           <Ionicons name="arrow-back" size={24} color="white" />
@@ -111,7 +110,6 @@ export default function DetalhesPedido() {
         <View style={{ width: 32 }} />
       </View>
 
-      {/* ID + badge de status */}
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <View style={styles.idRow}>
           <View>
@@ -128,7 +126,6 @@ export default function DetalhesPedido() {
         <Text style={[styles.dataValor, { color: colors.text }]}>{formatarData(pedido.created_at)}</Text>
       </View>
 
-      {/* Timeline de progresso */}
       {!isCancelled && (
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <Text style={[styles.secaoTitulo, { color: colors.text }]}>Progresso</Text>
@@ -173,7 +170,6 @@ export default function DetalhesPedido() {
         </View>
       )}
 
-      {/* Lista de itens */}
       {pedido.items && pedido.items.length > 0 && (
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <Text style={[styles.secaoTitulo, { color: colors.text }]}>Itens do Pedido</Text>
@@ -198,7 +194,6 @@ export default function DetalhesPedido() {
         </View>
       )}
 
-      {/* Resumo financeiro */}
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <Text style={[styles.secaoTitulo, { color: colors.text }]}>Resumo</Text>
 

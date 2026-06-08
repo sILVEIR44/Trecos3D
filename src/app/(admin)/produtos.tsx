@@ -181,7 +181,6 @@ export default function Produtos() {
         </TouchableOpacity>
       </View>
 
-      {/* Busca + Filtros */}
       <View style={[styles.buscaArea, { backgroundColor: colors.background }]}>
         <View style={[styles.buscaContainer, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
           <Ionicons name="search-outline" size={16} color={colors.subtext} style={{ marginRight: 6 }} />
@@ -266,7 +265,6 @@ export default function Produtos() {
         )}
       />
 
-      {/* Modal unificado: Adicionar / Editar */}
       <Modal visible={modalVisivel} animationType="slide" onRequestClose={fecharModal}>
         <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>

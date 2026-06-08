@@ -37,7 +37,6 @@ export default function NovoOrcamento() {
   const [enviando, setEnviando] = useState(false);
 
   function formatarTelefone(valor: string) {
-    // Remove tudo que não for número
     const numeros = valor.replace(/\D/g, "").slice(0, 11);
     if (numeros.length <= 2) return `(${numeros}`;
     if (numeros.length <= 7) return `(${numeros.slice(0,2)}) ${numeros.slice(2)}`;
@@ -99,7 +98,6 @@ export default function NovoOrcamento() {
       const preco = calcularPreco(materialSelecionado, tamanhoSelecionado.gramas, tamanhoSelecionado.horas);
       const pacote = new FormData();
 
-      // Foto é opcional — só anexa se o utilizador seleccionou uma
       if (imagem) {
         if (Platform.OS === "web") {
           const resp = await fetch(imagem);
@@ -108,8 +106,7 @@ export default function NovoOrcamento() {
         } else {
           const nome = imagem.split("/").pop() ?? "orcamento.jpg";
           const ext = nome.split(".").pop();
-          // @ts-ignore
-          pacote.append("file", { uri: imagem, name: nome, type: `image/${ext}` });
+          pacote.append("file", { uri: imagem, name: nome, type: `image/${ext}` } as any);
         }
       }
 
@@ -146,7 +143,6 @@ export default function NovoOrcamento() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.conteudo}
     >
-      {/* Cabeçalho */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.btnVoltar}>
           <Ionicons name="arrow-back" size={24} color="white" />
@@ -156,7 +152,6 @@ export default function NovoOrcamento() {
       </View>
 
       <View style={styles.corpo}>
-        {/* Área de imagem */}
         <Text style={[styles.secaoTitulo, { color: colors.text }]}>Foto da Peça</Text>
         <TouchableOpacity
           style={[styles.areaImagem, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -192,7 +187,6 @@ export default function NovoOrcamento() {
           </TouchableOpacity>
         </View>
 
-        {/* Material */}
         <Text style={[styles.secaoTitulo, { color: colors.text }]}>Material</Text>
         <View style={styles.chips}>
           {MATERIAIS.map(mat => {
@@ -220,7 +214,6 @@ export default function NovoOrcamento() {
           })}
         </View>
 
-        {/* Tamanho */}
         <Text style={[styles.secaoTitulo, { color: colors.text }]}>Tamanho Aproximado</Text>
         <View style={styles.tamanhos}>
           {TAMANHOS.map(t => {
@@ -250,7 +243,6 @@ export default function NovoOrcamento() {
           })}
         </View>
 
-        {/* Preview do preço */}
         {precoEstimado !== null && (
           <View style={[styles.precoCard, { backgroundColor: "#9810FA11", borderColor: "#9810FA33" }]}>
             <Ionicons name="calculator-outline" size={22} color="#9810FA" />
@@ -264,7 +256,6 @@ export default function NovoOrcamento() {
           </View>
         )}
 
-        {/* WhatsApp */}
         <Text style={[styles.secaoTitulo, { color: colors.text }]}>WhatsApp para Contato</Text>
         <View style={[styles.inputBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
@@ -278,7 +269,6 @@ export default function NovoOrcamento() {
           />
         </View>
 
-        {/* Botão enviar */}
         <TouchableOpacity
           style={[styles.botaoEnviar, enviando && { opacity: 0.6 }]}
           onPress={enviarOrcamento}

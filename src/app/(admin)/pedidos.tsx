@@ -27,14 +27,12 @@ export default function Pedidos() {
   }
 
   async function marcarConcluido(id: number) {
-    // Atualiza na tela imediatamente
     setPedidos(prev => prev.map(p => p.id === id ? { ...p, status: "completed" } : p))
     setConfirmandoId(null)
     try {
       await api.put(`/orders/${id}/status`, { status: "completed" })
     } catch (error: any) {
       console.log("Erro ao atualizar pedido:", error?.response?.data || error?.message)
-      // Reverte se der erro
       setPedidos(prev => prev.map(p => p.id === id ? { ...p, status: "preparing" } : p))
     }
   }
@@ -49,7 +47,6 @@ export default function Pedidos() {
 
     return (
       <View style={[styles.card, concluido && styles.cardConcluido]}>
-        {/* Header do card — clicável para ver detalhes */}
         <TouchableOpacity
           onPress={() => router.push({ pathname: "/(screens)/detalhes-pedido" as any, params: { id: item.id } })}
           activeOpacity={0.7}
@@ -71,14 +68,12 @@ export default function Pedidos() {
 
         </TouchableOpacity>
 
-        {/* Dados do cliente */}
         <View style={styles.clienteBox}>
           <Ionicons name="person-outline" size={14} color="#888" />
           <Text style={styles.clienteTexto}>{item.user_name || "—"}</Text>
           <Text style={styles.clienteEmail}>{item.user_email || ""}</Text>
         </View>
 
-        {/* Itens do pedido */}
         {itens.length > 0 && (
           <View style={styles.itensBox}>
             <Text style={styles.itensLabel}>Itens:</Text>
@@ -90,7 +85,6 @@ export default function Pedidos() {
           </View>
         )}
 
-        {/* Total e botão */}
         <Text style={styles.total}>Total: R$ {Number(item.total_value).toFixed(2)}</Text>
 
         {!concluido && confirmandoId !== item.id && (

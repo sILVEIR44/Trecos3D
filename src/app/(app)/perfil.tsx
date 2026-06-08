@@ -36,7 +36,6 @@ export default function Perfil() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.conteudo}
     >
-      {/* Cabeçalho */}
       <View style={styles.cabecalho}>
         <View style={styles.avatarBox}>
           <Text style={styles.avatarLetra}>
@@ -50,7 +49,6 @@ export default function Perfil() {
         </View>
       </View>
 
-      {/* Meus Pedidos e Orçamentos */}
       <Text style={[styles.secaoTitulo, { color: colors.subtext }]}>Compras</Text>
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <TouchableOpacity
@@ -75,7 +73,6 @@ export default function Perfil() {
         </TouchableOpacity>
       </View>
 
-      {/* Segurança */}
       <Text style={[styles.secaoTitulo, { color: colors.subtext }]}>Segurança</Text>
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <TouchableOpacity
@@ -92,7 +89,6 @@ export default function Perfil() {
         </TouchableOpacity>
       </View>
 
-      {/* Preferências */}
       <Text style={[styles.secaoTitulo, { color: colors.subtext }]}>Preferências</Text>
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <View style={[styles.linhaCard, { borderBottomWidth: 0 }]}>
@@ -109,7 +105,6 @@ export default function Perfil() {
         </View>
       </View>
 
-      {/* Suporte */}
       <Text style={[styles.secaoTitulo, { color: colors.subtext }]}>Suporte</Text>
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <TouchableOpacity
@@ -130,7 +125,6 @@ export default function Perfil() {
         </TouchableOpacity>
       </View>
 
-      {/* Rodapé */}
       <View style={styles.rodape}>
         <TouchableOpacity style={styles.botaoSair} onPress={confirmarSaida}>
           <Ionicons name="log-out-outline" size={20} color="white" />

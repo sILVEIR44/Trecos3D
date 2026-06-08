@@ -40,7 +40,6 @@ export default function AprovarOrcamentos() {
         buscarPendentes();
     }, []);
 
-    //  (Aprovar ou Rejeitar)
     const despacharOrdem = async (id: number, status: 'approved' | 'rejected') => {
         try {
             const urlDaAPI = `http://192.168.5.235:3000/quotes/${id}/status`;
@@ -56,8 +55,7 @@ export default function AprovarOrcamentos() {
             if (!resposta.ok) throw new Error("Falha ao executar a ordem");
 
             Alert.alert("Sucesso!", `O orçamento foi ${status === 'approved' ? 'Aprovado' : 'Rejeitado'} com sucesso!`);
-            
-            // Remove da lista o orçamento
+
             setOrcamentos((listaAtual) => listaAtual.filter((item) => item.id !== id));
 
         } catch (error) {
@@ -108,7 +106,7 @@ export default function AprovarOrcamentos() {
                             </View>
 
                             <View style={styles.cartaoAcoes}>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={[styles.botao, styles.botaoRejeitar]}
                                     onPress={() => despacharOrdem(item.id, 'rejected')}
                                 >
@@ -116,7 +114,7 @@ export default function AprovarOrcamentos() {
                                     <Text style={styles.textoBotao}>Rejeitar</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={[styles.botao, styles.botaoAprovar]}
                                     onPress={() => despacharOrdem(item.id, 'approved')}
                                 >
@@ -133,139 +131,139 @@ export default function AprovarOrcamentos() {
 }
 
 const styles = StyleSheet.create({
-    centro: { 
-        flex: 1, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        backgroundColor: '#F5F5F5' 
+    centro: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F5F5F5'
 
     },
 
-    textoCarregando: { 
-        marginTop: 10, 
-        fontSize: 16, 
-        color: '#555' 
+    textoCarregando: {
+        marginTop: 10,
+        fontSize: 16,
+        color: '#555'
     },
 
-    container: { 
-        flex: 1, 
-        backgroundColor: '#F5F5F5' 
+    container: {
+        flex: 1,
+        backgroundColor: '#F5F5F5'
     },
 
-    cabecalho: { 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        backgroundColor: '#000', 
-        padding: 20, 
-        paddingTop: 50, 
-        borderBottomLeftRadius: 20, 
-        borderBottomRightRadius: 20 
+    cabecalho: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#000',
+        padding: 20,
+        paddingTop: 50,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20
     },
 
-    botaoVoltar: { 
-        marginRight: 15 
+    botaoVoltar: {
+        marginRight: 15
     },
 
-    titulo: { 
-        fontSize: 20, 
-        fontWeight: 'bold', 
-        color: '#FFF' 
+    titulo: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#FFF'
     },
 
-    lista: { 
-        padding: 15 
+    lista: {
+        padding: 15
     },
 
-    vazio: { 
-        flex: 1, 
-        justifyContent: 'center', 
-        alignItems: 'center' 
+    vazio: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
 
-    textoVazio: { 
-        fontSize: 18, 
-        fontWeight: 'bold', 
-        color: '#333', 
-        marginTop: 10 
+    textoVazio: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+        marginTop: 10
     },
 
-    subTextoVazio: { 
-        fontSize: 14, 
-        color: '#777', 
-        marginTop: 5 
+    subTextoVazio: {
+        fontSize: 14,
+        color: '#777',
+        marginTop: 5
     },
 
-    cartao: { 
-        backgroundColor: '#FFF', 
-        borderRadius: 12, 
-        padding: 15, 
-        marginBottom: 15, 
-        elevation: 3 
+    cartao: {
+        backgroundColor: '#FFF',
+        borderRadius: 12,
+        padding: 15,
+        marginBottom: 15,
+        elevation: 3
     },
 
-    cartaoTopo: { 
-        flexDirection: 'row', 
-        marginBottom: 15 
+    cartaoTopo: {
+        flexDirection: 'row',
+        marginBottom: 15
     },
 
-    imagem: { 
-        width: 80, 
-        height: 80, 
-        borderRadius: 8, 
-        backgroundColor: '#EEE' 
+    imagem: {
+        width: 80,
+        height: 80,
+        borderRadius: 8,
+        backgroundColor: '#EEE'
     },
 
-    info: { 
-        flex: 1, 
-        marginLeft: 15, 
-        justifyContent: 'center' 
+    info: {
+        flex: 1,
+        marginLeft: 15,
+        justifyContent: 'center'
     },
 
-    infoTexto: { 
-        fontSize: 14, 
-        color: '#555', 
-        marginBottom: 2 
+    infoTexto: {
+        fontSize: 14,
+        color: '#555',
+        marginBottom: 2
     },
 
-    negrito: { 
-        fontWeight: 'bold', 
-        color: '#333' 
+    negrito: {
+        fontWeight: 'bold',
+        color: '#333'
     },
 
-    preco: { 
-        fontSize: 18, 
-        fontWeight: 'bold', 
-        color: '#9810FA', 
-        marginTop: 5 
+    preco: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#9810FA',
+        marginTop: 5
     },
 
-    cartaoAcoes: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        gap: 10 
+    cartaoAcoes: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 10
     },
 
-    botao: { 
-        flex: 1, 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        paddingVertical: 10, 
-        borderRadius: 8, 
-        gap: 5 
-    }, 
+    botao: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderRadius: 8,
+        gap: 5
+    },
 
-    botaoRejeitar: { 
+    botaoRejeitar: {
         backgroundColor: '#DC3545'
     },
 
-    botaoAprovar: { 
-        backgroundColor: '#28A745' 
+    botaoAprovar: {
+        backgroundColor: '#28A745'
     },
 
-    textoBotao: { 
-        color: '#FFF', 
-        fontWeight: 'bold', 
-        fontSize: 15 
+    textoBotao: {
+        color: '#FFF',
+        fontWeight: 'bold',
+        fontSize: 15
     }
 });
